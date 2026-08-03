@@ -9,6 +9,9 @@
   var HINT = '<div class="empty">Hover a cell to preview its conversion. '
            + '<b>Click</b> to pin it, click the same cell again to release it.</div>';
 
+  // Every rendered conversion points the same way with the same glyph.
+  var ARROW = '<span class="arrow">→</span>';
+
   var MAX_ROUTES = 60;
   var MAX_HOPS = 7;
 
@@ -139,7 +142,7 @@
 
       html += '<div class="rt' + (chosen ? ' chosen' : '') + '" style="--i:' + index + '">'
             + '<span class="hops">' + hops + (hops === 1 ? ' hop' : ' hops') + '</span>'
-            + '<span class="via">' + route.path.join(' → ') + '</span>'
+            + '<span class="via">' + route.path.map(escText).join(ARROW) + '</span>'
             + '<span class="fac' + (disagrees ? ' disagree' : '') + '">× ' + num(route.m)
             + (route.b !== 0 ? (route.b > 0 ? ' + ' : ' − ') + num(Math.abs(route.b)) : '')
             + (disagrees ? '   — disagrees with the shortest route' : '')

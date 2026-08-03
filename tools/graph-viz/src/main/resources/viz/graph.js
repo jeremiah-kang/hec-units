@@ -482,7 +482,7 @@
       var A = N[pickA].id;
       if (pickB === null) {
         panelShow(clearButton() + '<h4><span class="pk p1">1</span>' + escText(A)
-                + ' → ?</h4>' + namesLine(pickA, null)
+                + ARROW + '?</h4>' + namesLine(pickA, null)
                 + '<div class="pth-sub">now click the destination unit</div>', true);
         return;
       }
@@ -500,7 +500,7 @@
 
       var head = clearButton()
         + '<h4><span class="pk p1">1</span>' + escText(A)
-        + ' → <span class="pk p2">2</span>' + escText(B) + '</h4>'
+        + ARROW + '<span class="pk p2">2</span>' + escText(B) + '</h4>'
         + namesLine(pickA, pickB)
         + '<div class="pth-sub">' + paths.length + ' route' + (paths.length === 1 ? '' : 's')
         + (paths.truncated ? ' (capped at ' + MAX_PATHS + ')' : '')
@@ -532,12 +532,13 @@
           ? '<span class="grp" style="background:'
             + GROUP_COLORS[order.indexOf(keyOf(r)) % GROUP_COLORS.length] + '"></span>'
           : '';
-        var chain = [A].concat(p.map(function (h) { return N[h.to].id; })).join(' → ');
+        var chain = [A].concat(p.map(function (h) { return N[h.to].id; }))
+                       .map(escText).join(ARROW);
         return '<div class="prow' + (i === 0 ? ' best' : '') + '" data-i="' + i
              + '" style="--i:' + i + '">'
              + '<div class="top"><span class="hops">' + p.length + ' hop'
              + (p.length === 1 ? '' : 's') + '</span>'
-             + '<span class="route">' + dot + escText(chain) + '</span></div>'
+             + '<span class="route">' + dot + chain + '</span></div>'
              + '<div class="res">' + factorHtml(r, A, B) + '</div></div>';
       }).join('');
 
