@@ -10,7 +10,9 @@
 
   var GROUP_COLORS = ['#38bdf8', '#f87171', '#fbbf24', '#a78bfa', '#34d399', '#fb923c'];
   var MAX_PATHS = 4000;
-  var MAX_HOPS = 14;
+  // Named apart from the cap in overlay.js: the five files share one
+  // closure, so two identically named vars would be a single variable.
+  var SEED_MAX_HOPS = 14;
 
   function escText(value) {
     return String(value).replace(/[&<>"]/g, function (c) {
@@ -413,7 +415,7 @@
       (function walk(cur, path) {
         if (out.length >= MAX_PATHS) { truncated = true; return; }
         if (path.length && cur === to) { out.push(path.slice()); return; }
-        if (path.length >= MAX_HOPS) { return; }
+        if (path.length >= SEED_MAX_HOPS) { return; }
         ADJ[cur].forEach(function (step) {
           if (usedE[step.ei]) { return; }
           if (!allowRevisit && seenN[step.other] && step.other !== to) { return; }

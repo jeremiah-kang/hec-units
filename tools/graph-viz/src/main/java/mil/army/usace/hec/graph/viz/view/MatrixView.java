@@ -21,8 +21,9 @@ public final class MatrixView {
         """;
 
     private static final String CARD = """
-        <div class="card" style="--i:{{index}}">
-          <header><h2>{{group}}</h2>{{tally}}</header>
+        <div class="card" style="--i:{{index}}" data-name="{{group}}" data-find="{{find}}"
+         data-failed="{{failed}}" data-untested="{{untested}}">
+          <header><h2>{{group}}</h2><span class="meta">{{units}} units</span>{{tally}}</header>
           <div class="scroll">
             <table class="matrix">
               <thead><tr><th class="corner"></th>{{columns}}</tr></thead>
@@ -64,9 +65,14 @@ public final class MatrixView {
     }
 
     private static String card(String group, List<Node> members, Graph graph, int index) {
+        var counts = counts(members, graph);
         return Html.fill(CARD)
             .put("group", group)
             .put("index", index)
+            .put("units", members.size())
+            .put("find", searchText(group, members))
+            .put("failed", counts.getOrDefault("failed", 0))
+            .put("untested", counts.getOrDefault("untested", 0))
             .raw("tally", tally(members, graph))
             .raw("columns", Html.each(members, to -> Html.tag("th").text(to.id()).toString()))
             .raw("rows", Html.each(members, from -> row(from, members, graph)))
@@ -125,8 +131,7 @@ public final class MatrixView {
         return "present";                   // a seed edge, carrying no status
     }
 
-    /** Counts beside the heading, so dimensions can be triaged without opening them. */
-    private static String tally(List<Node> members, Graph graph) {
+    private static TreeMap<String, Integer> counts(List<Node> members, Graph graph) {
         var counts = new TreeMap<String, Integer>();
         for (Node from : members) {
             for (Node to : members) {
@@ -135,6 +140,21 @@ public final class MatrixView {
                 }
             }
         }
+        return counts;
+    }
+
+    /** Everything a card should match on: its group and every unit inside it. */
+    private static String searchText(String group, List<Node> members) {
+        var text = new StringBuilder(group);
+        for (Node node : members) {
+            text.append(' ').append(node.id()).append(' ').append(node.label());
+        }
+        return text.toString().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** Counts beside the heading, so dimensions can be triaged without opening them. */
+    private static String tally(List<Node> members, Graph graph) {
+        var counts = counts(members, graph);
         var badges = new StringBuilder();
         counts.forEach((state, count) -> badges.append(
             Html.tag("span").attr("class", "badge " + state).text(count)));

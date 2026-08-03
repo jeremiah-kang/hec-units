@@ -30,9 +30,11 @@ public final class PageRenderer {
             {{tabbar}}
             <div class="tabpane active" id="tab-coverage">
               {{legend}}
+              {{coverbar}}
               {{body}}
             </div>
             {{seedpane}}
+            {{findpane}}
             {{overlay}}
             {{summary}}
             {{data}}
@@ -52,6 +54,12 @@ public final class PageRenderer {
             <h3 id="otitle"></h3>
             <span id="oaxis">row → column</span>
             <span id="otally" class="tally"></span>
+            <label class="find" id="ofind">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/>
+              <path d="M16.5 16.5 21 21"/></svg>
+              <input type="search" placeholder="highlight a unit">
+              <button type="button" class="clearfind" aria-label="clear">&times;</button>
+            </label>
             <button id="oreset" type="button">Reset view</button>
             <button id="oclose" type="button">Close</button>
           </div>
@@ -102,9 +110,23 @@ public final class PageRenderer {
             .raw("tabbar", tabbed ? TABBAR : "")
             .raw("legend", legend("legend", stats))
             .raw("body", body)
+            .raw("coverbar", tabbed ? SearchView.bar("cover",
+                     "Filter dimensions - try Volume, ft3, or Length", List.of(
+                     new SearchView.Group("coverage", List.of(
+                     new SearchView.Option("failed", "has failures"),
+                     new SearchView.Option("untested", "incomplete"),
+                     new SearchView.Option("complete", "fully covered"))))) : "")
             .raw("seedpane", tabbed
-                 ? Html.fill(SEEDPANE).raw("legend", seedLegend()).raw("body", seedBody).render()
+                 ? Html.fill(SEEDPANE).raw("legend", seedLegend())
+                       .raw("bar", SearchView.bar("seed",
+                            "Filter dimensions - try Volume, ft3, or Length", List.of(
+                            new SearchView.Group("graph shape", List.of(
+                            new SearchView.Option("tree", "trees"),
+                            new SearchView.Option("cyclic", "has cycles"),
+                            new SearchView.Option("dup", "duplicate edges"))))))
+                       .raw("body", seedBody).render()
                  : "")
+            .raw("findpane", tabbed ? SearchView.tab() : "")
             .raw("overlay", Html.fill(OVERLAY)
                  .raw("legend", legend("legend olegend mkey", null))
                  .raw("seedkey", tabbed ? seedKey() : "")
@@ -118,12 +140,14 @@ public final class PageRenderer {
         <div class="tabs" role="tablist">
           <button class="tab active" data-pane="tab-coverage" type="button">Coverage</button>
           <button class="tab" data-pane="tab-seed" type="button">Conversion graphs</button>
+          <button class="tab" data-pane="tab-find" type="button">Search</button>
         </div>
         """;
 
     private static final String SEEDPANE = """
         <div class="tabpane" id="tab-seed">
           {{legend}}
+          {{bar}}
           {{body}}
         </div>
         """;
@@ -222,7 +246,8 @@ public final class PageRenderer {
         "/viz/tables.js",         // click-to-sort table headers
         "/viz/graph.js",          // conversion-graph explorer (cytoscape + physics)
         "/viz/chrome.js",         // tab bar and summary modal
-        "/viz/matrix-cells.js");  // hover and pin for enlarged matrix cells
+        "/viz/matrix-cells.js",   // hover and pin for enlarged matrix cells
+        "/viz/search.js");        // search tab, grid filters, in-matrix highlight
 
     private static String pageScript() throws IOException {
         var script = new StringBuilder("(function () {\n");
