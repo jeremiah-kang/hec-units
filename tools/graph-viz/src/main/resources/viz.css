@@ -1,5 +1,5 @@
 /* ============================================================ design tokens
-   Every colour, radius, shadow and duration lives here, so views written later
+   Every color, radius, shadow and duration lives here, so views written later
    (the node-link graph, the path explorer) inherit the same language by using
    the same variables. */
 :root{
@@ -126,9 +126,13 @@ button{font:inherit}
  animation-delay:calc(min(var(--i,0),14)*30ms)}
 .card:hover{transform:translateY(-2px);box-shadow:var(--shadow-m);border-color:#cbd5e1}
 
+.card{display:flex;flex-direction:column}
 .card header{display:flex;align-items:baseline;gap:10px;justify-content:space-between;
  margin-bottom:10px;flex-wrap:wrap}
 .card h2{margin:0;font-size:16px}
+.card .meta{font:11.5px var(--mono);color:var(--ink-3);margin:0;flex:1}
+.card .scroll,.card svg.nl{flex:1;align-self:center}
+.card .scroll{display:flex;align-items:center;justify-content:center;width:100%}
 
 .tally{display:inline-flex;gap:5px;flex:none}
 .badge{font:11px var(--mono);padding:2px 8px;border-radius:var(--r-pill);white-space:nowrap}
@@ -182,6 +186,7 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 #obar h3,#sbar h3{margin:0;font-size:19px;letter-spacing:-.01em}
 #oclose,#sclose{margin-left:auto}
 
+#oaxis .arrow{margin:0 5px;font-size:1.1em}
 #oaxis{font:11.5px var(--mono);color:var(--lt-ink-2);background:var(--glass-line);
  border:1px solid var(--glass-strong);padding:2px 10px;border-radius:var(--r-pill)}
 
@@ -219,7 +224,7 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 #ostage td.missing .lab{color:var(--untested-dark)}
 
 /* Hover marks position only - a ring, never a fill that would hide the status.
-   Must sit after the status colours: same specificity, source order decides. */
+   Must sit after the status colors: same specificity, source order decides. */
 #ostage td.hi{outline:2px solid var(--lt-ink-3);outline-offset:1px;transform:scale(1.06)}
 #ostage th.hi{color:var(--lt-ink);font-weight:600}
 #ostage td.pin,
@@ -229,7 +234,11 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 #opanel{width:430px;flex:none;overflow-y:auto;background:#0f172acc;color:var(--lt-ink);
  border-left:1px solid var(--glass-strong);padding:20px 22px;font-size:14.5px}
 #opanel .empty{color:var(--lt-ink-3);line-height:1.6}
-#opanel .empty b{color:var(--lt-ink)}
+
+/* The heading is its own line with room under it, or the prompt below reads as
+   a run-on sentence. */
+#opanel .empty b,.infopage .empty b{display:block;margin-bottom:9px;font-size:16px;
+ color:var(--lt-ink)}
 
 /* freshly inserted content slides up - new node, so the animation replays */
 #odetail>.fx,#odetail>.empty{animation:rise var(--fast) var(--ease) both}
@@ -246,11 +255,16 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 
 .u{font-family:var(--math);font-size:1.1em;white-space:nowrap}
 
+/* Direction is the point of every one of these panels, so the arrow is sized
+   and colored to be read, not inferred. */
+.arrow{color:var(--accent-deep);font-family:var(--sans);font-weight:700;
+ font-size:1.25em;line-height:1;margin:0 8px;vertical-align:-.05em}
+
 .fx-head{display:flex;align-items:center;gap:2px;flex-wrap:wrap;font-size:19px;
  color:var(--lt-ink);padding-bottom:8px}
-.fx-head .arrow{margin:0 10px;color:var(--lt-ink-3);font-size:.9em}
-.fx-head .chip{margin-left:auto;font:10.5px var(--mono);padding:2px 9px;
- border-radius:var(--r-pill)}
+.fx-head .arrow{margin:0 11px}
+.chip{display:inline-block;font:10.5px var(--mono);padding:2px 9px;border-radius:var(--r-pill)}
+.fx-head .chip{margin-left:auto}
 .chip.passed{background:#14532d;color:#86efac}
 .chip.failed{background:#7f1d1d;color:#fca5a5}
 .chip.untested{background:var(--dark-3);color:var(--lt-ink-2)}
@@ -267,25 +281,29 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 .fx-where{margin-top:14px;font-size:13px;color:var(--lt-ink-3);
  display:flex;align-items:center;flex-wrap:wrap;gap:2px}
 .fx-where .kw{font-style:italic;margin-right:9px;font-family:var(--math)}
-.fx-where .arrow{margin:0 6px;color:var(--lt-ink-4)}
+.fx-where .arrow{margin:0 7px}
 .fx-where .hopcount{margin-left:9px;font:10.5px var(--mono);
  background:var(--glass-line);border-radius:var(--r-pill);padding:1px 8px;white-space:nowrap}
 
-/* ---- test cases ---- */
+/* ---- test cases ----
+   One card per direction. The top line is what ran, the bottom line is how far
+   off it landed - absolute and relative, since only the pair says whether a
+   miss is rounding or a wrong constant. */
 .fx-tests{margin-top:17px;padding-top:13px;border-top:1px solid var(--glass-line)}
 .fx-tests .lbl{font:10.5px var(--mono);color:var(--accent);
  letter-spacing:.06em;text-transform:uppercase;margin-bottom:9px}
-.fx-tests table{width:100%;border-collapse:collapse;font-size:13.5px}
-.fx-tests td{padding:3px 6px 3px 0;vertical-align:baseline}
-.fx-tests .k{font:10px var(--mono);color:var(--lt-ink-4);white-space:nowrap;
- text-transform:uppercase;letter-spacing:.04em}
-.fx-tests .got{color:var(--lt-ink)}
-.fx-tests .v{text-align:right;white-space:nowrap;font:12px var(--mono)}
-.fx-tests tr.ok .v{color:#86efac}
-.fx-tests tr.bad td{background:#7f1d1d33}
-.fx-tests tr.bad .v{color:#fca5a5}
-.fx-tests tr.want td{color:#7c8b9a;font-size:11.5px;padding-top:0;padding-bottom:7px;
- font-family:var(--mono)}
+.tc{padding:8px 11px;border-radius:var(--r-m);margin-bottom:7px;background:#ffffff0d;
+ border:1px solid var(--glass-line);animation:rise var(--fast) var(--ease) both}
+.tc.bad{background:#7f1d1d33;border-color:#ef444459}
+.tc-top{display:flex;align-items:center;flex-wrap:wrap;font-size:14.5px;color:var(--lt-ink)}
+.tc-top .arrow{margin:0 9px}
+.tc-mark{margin-left:auto;padding-left:10px;font:11px var(--mono);white-space:nowrap}
+.tc.ok .tc-mark{color:#86efac}
+.tc.bad .tc-mark{color:#fca5a5}
+.tc-sub{display:flex;flex-wrap:wrap;gap:4px 15px;margin-top:6px;
+ font:11.5px var(--mono);color:var(--lt-ink-4)}
+.tc-sub b{font-weight:400;color:var(--lt-ink-2)}
+.tc.bad .tc-sub b{color:#fca5a5}
 
 /* ---- routes ---- */
 .fx-paths{margin-top:15px;padding-top:12px;border-top:1px solid var(--glass-line)}
@@ -552,3 +570,206 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 .clearpick:active{transform:scale(.96)}
 .clearpick:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
 
+/* ============================================================ search + filter */
+.toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 20px}
+
+.find{position:relative;display:flex;align-items:center;flex:1;min-width:260px;max-width:460px}
+.find svg{position:absolute;left:13px;width:16px;height:16px;fill:none;
+ stroke:var(--ink-3);stroke-width:2;stroke-linecap:round;pointer-events:none}
+.find input{width:100%;padding:10px 34px 10px 38px;border-radius:var(--r-pill);
+ border:1px solid var(--line);background:var(--card);color:var(--ink);
+ font:14px var(--sans);box-shadow:var(--shadow-s);
+ transition:border-color var(--fast) var(--ease),box-shadow var(--fast) var(--ease)}
+.find input:focus{outline:none;border-color:var(--accent-deep);
+ box-shadow:0 0 0 3px #38bdf833}
+.find input::-webkit-search-cancel-button{display:none}
+.clearfind{position:absolute;right:8px;width:22px;height:22px;border:none;padding:0;
+ border-radius:50%;background:none;color:var(--ink-3);cursor:pointer;font-size:17px;
+ line-height:1;opacity:0;pointer-events:none;transition:opacity var(--fast) var(--ease)}
+.find.filled .clearfind{opacity:1;pointer-events:auto}
+.clearfind:hover{background:var(--line);color:var(--ink)}
+
+/* ---- filter menu ----
+   Every surface filters through the same popup, so a page can offer many
+   choices without a row of chips growing across the layout. */
+.filter{position:relative;flex:none}
+.filterbtn{display:flex;align-items:center;gap:8px;padding:9px 16px;cursor:pointer;
+ border:1px solid var(--line);background:var(--card);color:var(--ink-2);
+ border-radius:var(--r-pill);font:13px var(--sans);box-shadow:var(--shadow-s);
+ transition:border-color var(--fast) var(--ease),color var(--fast) var(--ease),
+  transform var(--fast) var(--ease)}
+.filterbtn svg{width:15px;height:15px;fill:none;stroke:currentColor;
+ stroke-width:2;stroke-linecap:round}
+.filterbtn:hover{border-color:#cbd5e1;color:var(--ink)}
+.filterbtn:active{transform:scale(.97)}
+.filterbtn:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
+.filter.on .filterbtn{background:var(--dark);border-color:var(--dark);color:var(--page)}
+.fnum{min-width:18px;height:18px;padding:0 5px;border-radius:var(--r-pill);
+ font:11px var(--mono);line-height:18px;text-align:center}
+.filter.on .fnum{background:var(--page);color:var(--dark)}
+
+.filtermenu{position:absolute;top:calc(100% + 8px);left:0;z-index:40;width:260px;
+ padding:14px 16px 12px;border-radius:var(--r-l);background:var(--card);
+ border:1px solid var(--line);box-shadow:var(--shadow-m);
+ animation:rise var(--fast) var(--ease)}
+.filtermenu[hidden]{display:none}
+.fgroup{margin-bottom:13px}
+.flbl{font:10px var(--mono);color:var(--ink-3);letter-spacing:.06em;
+ text-transform:uppercase;margin-bottom:6px}
+.fopt{display:flex;align-items:center;gap:9px;padding:4px 0;cursor:pointer;
+ font-size:13px;color:var(--ink-2)}
+.fopt:hover{color:var(--ink)}
+.fopt input{accent-color:var(--accent-deep);width:15px;height:15px;margin:0;cursor:pointer}
+.frow{display:flex;align-items:center;gap:8px}
+.funit{font:11.5px var(--mono);color:var(--ink-3)}
+.filtermenu select,.filtermenu input[type=number]{padding:6px 9px;border-radius:var(--r-m);
+ border:1px solid var(--line);background:var(--card);color:var(--ink);font:13px var(--sans)}
+.filtermenu select{width:100%}
+.frow select{width:auto;flex:1}
+.filtermenu input[type=number]{width:66px}
+.filtermenu input[type=number]:disabled{opacity:.4}
+.fclear{width:100%;margin-top:4px;padding:7px;cursor:pointer;border-radius:var(--r-m);
+ border:1px solid var(--line);background:none;color:var(--ink-3);font:11.5px var(--mono);
+ transition:background var(--fast) var(--ease),color var(--fast) var(--ease)}
+.fclear:hover{background:var(--page-deep);color:var(--ink)}
+
+.count{font:11.5px var(--mono);color:var(--ink-3);margin-left:auto}
+
+/* Cards leave by shrinking rather than vanishing, so the grid reflow reads. */
+.card.hidden{display:none}
+.card.leaving{animation:fadeout var(--fast) var(--ease) both}
+@keyframes fadeout{to{opacity:0;transform:scale(.96)}}
+
+.emptystate{padding:44px 8px;text-align:center;color:var(--ink-3);font-size:14px;
+ animation:rise var(--med) var(--ease)}
+.emptystate b{color:var(--ink);display:block;margin-bottom:5px;font-size:15px}
+
+/* ============================================================ wiki tab */
+.wiki{display:flex;flex-direction:column;gap:14px}
+.find.big{max-width:none;flex:1}
+.find.big input{padding:14px 38px 14px 44px;font-size:16px;border-radius:var(--r-l)}
+.find.big svg{left:16px;width:19px;height:19px}
+
+/* Conversions and units are different questions, so they get different boxes
+   rather than one query string that has to mean both. */
+.modes{display:inline-flex;gap:3px;padding:3px;border-radius:var(--r-pill);
+ background:var(--page-deep);border:1px solid var(--line);align-self:flex-start}
+.mode{border:none;background:none;cursor:pointer;padding:7px 18px;color:var(--ink-3);
+ border-radius:var(--r-pill);font:13px var(--sans);
+ transition:background var(--fast) var(--ease),color var(--fast) var(--ease)}
+.mode:hover{color:var(--ink)}
+.mode.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow-s)}
+.mode:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
+
+.findbar{display:flex;align-items:center;gap:4px}
+.findbar[hidden]{display:none}
+.findsep{font-size:26px;margin:0 4px}
+.findtools{display:flex;align-items:center;gap:14px}
+@media(max-width:700px){
+ .findbar{flex-wrap:wrap}
+ .findsep{display:none}
+}
+
+.wikibody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;
+ align-items:start}
+@media(max-width:900px){.wikibody{grid-template-columns:1fr}}
+
+.results{max-height:66vh;overflow-y:auto;scrollbar-width:thin;
+ scrollbar-color:var(--line) transparent;scrollbar-gutter:stable}
+.res{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-m);
+ cursor:pointer;border:1px solid transparent;
+ animation:rise var(--fast) var(--ease) both;animation-delay:calc(min(var(--i,0),16)*14ms);
+ transition:background var(--fast) var(--ease),border-color var(--fast) var(--ease)}
+.res:hover{background:var(--card);border-color:var(--line)}
+.res.on{background:var(--card);border-color:var(--accent-deep)}
+.res .pairs{font:13.5px var(--mono);color:var(--ink);flex:1;min-width:0;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res .pairs .arrow{margin:0 7px;font-size:1.15em}
+.res .sub{color:var(--ink-3);font-size:12px;margin-left:10px}
+.res .dim{font:11px var(--mono);color:var(--ink-3);white-space:nowrap}
+.res .dot{width:9px;height:9px;border-radius:3px;flex:none}
+.res .dot.passed{background:var(--ok)}
+.res .dot.failed{background:var(--bad)}
+.res .dot.untested{background:var(--untested)}
+.res .dot.missing{background:var(--missing);box-shadow:inset 0 0 0 1px var(--untested)}
+.res mark{background:#38bdf840;color:inherit;border-radius:2px;padding:0 1px}
+
+.infopage{position:sticky;top:16px;background:var(--dark);border:1px solid var(--dark-3);
+ border-radius:var(--r-l);padding:20px 22px;color:var(--lt-ink);min-height:220px;
+ max-height:72vh;overflow-y:auto;scrollbar-width:thin;
+ scrollbar-color:var(--dark-3) transparent;scrollbar-gutter:stable}
+.infopage .empty{color:var(--lt-ink-3);line-height:1.6}
+.infopage>.fx,.infopage>.info{animation:rise var(--fast) var(--ease) both}
+.info-sec{margin-top:16px;padding-top:13px;border-top:1px solid var(--glass-line)}
+.info-sec .lbl{font:10.5px var(--mono);color:var(--accent);letter-spacing:.06em;
+ text-transform:uppercase;margin-bottom:8px}
+
+/* The term is smaller than its value, so only a shared baseline lines them up -
+   stretch leaves the label riding above text like "Area". */
+.info-facts{display:grid;grid-template-columns:auto 1fr;gap:7px 16px;font-size:13px;
+ align-items:baseline}
+.info-facts dt{color:var(--lt-ink-4);font:11.5px var(--mono)}
+.info-facts dd{margin:0;color:var(--lt-ink-2);line-height:1.5}
+
+.info-text{color:var(--lt-ink-2);font-size:13.5px;line-height:1.55}
+.info-note{color:var(--lt-ink-4);font-size:11.5px;line-height:1.5;margin-top:8px}
+.info-tally{display:flex;gap:6px;flex-wrap:wrap}
+
+/* Each neighbour is a shortcut back into the conversion search. */
+.nbs{display:flex;gap:7px;flex-wrap:wrap}
+.nb{display:flex;align-items:center;padding:5px 11px;cursor:pointer;
+ border-radius:var(--r-pill);border:1px solid var(--glass-line);background:#ffffff0d;
+ color:var(--lt-ink-2);font:12px var(--mono);
+ transition:background var(--fast) var(--ease),color var(--fast) var(--ease)}
+.nb:hover{background:#ffffff1f;color:var(--lt-ink)}
+.nb:active{transform:scale(.97)}
+.nb:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
+.nb .arrow{margin:0 6px;font-size:1.1em}
+
+/* ============================================================ matrix search */
+#ofind{flex:none;width:190px}
+#ofind input{padding:6px 12px 6px 30px;font-size:12.5px;background:var(--glass-strong);
+ border-color:#ffffff2e;color:var(--lt-ink);box-shadow:none}
+#ofind input::placeholder{color:var(--lt-ink-4)}
+#ofind svg{left:10px;width:14px;height:14px;stroke:var(--lt-ink-4)}
+#ofind .clearfind{color:var(--lt-ink-3)}
+#ofind .clearfind:hover{background:#ffffff2e;color:var(--lt-ink)}
+#overlay.seedmode #ofind{display:none}
+
+#ostage td.faded{opacity:.14}
+#ostage td.found{outline:2px solid var(--accent-deep);outline-offset:1px;
+ animation:foundpulse .5s var(--ease)}
+#ostage th.found{color:var(--accent);font-weight:600}
+@keyframes foundpulse{0%{outline-color:transparent}60%{outline-color:#fff}}
+
+@media(prefers-color-scheme:dark){
+ .find input,.filterbtn,.filtermenu,.filtermenu select,.filtermenu input[type=number]{
+  background:var(--dark-2);border-color:var(--dark-3);color:var(--lt-ink-2)}
+ .find input,.filtermenu select,.filtermenu input[type=number]{color:var(--lt-ink)}
+ .find svg{stroke:var(--lt-ink-3)}
+ .filterbtn:hover{border-color:var(--untested-dark);color:var(--lt-ink)}
+ .filter.on .filterbtn{background:var(--lt-ink);border-color:var(--lt-ink);color:var(--dark)}
+ .filter.on .fnum{background:var(--dark);color:var(--lt-ink)}
+ .flbl{color:var(--lt-ink-4)}
+ .fopt{color:var(--lt-ink-2)}
+ .fopt:hover{color:var(--lt-ink)}
+ .fclear{border-color:var(--dark-3);color:var(--lt-ink-3)}
+ .fclear:hover{background:var(--dark-3);color:var(--lt-ink)}
+ .modes{background:var(--dark);border-color:var(--dark-3)}
+ .mode.active{background:var(--dark-2);color:var(--lt-ink)}
+ .clearfind:hover{background:var(--dark-3);color:var(--lt-ink)}
+ .res:hover,.res.on{background:var(--dark-2)}
+ .res .pairs{color:var(--lt-ink)}
+ .res .sub,.res .dim{color:var(--lt-ink-3)}
+ .emptystate b{color:var(--lt-ink)}
+ .infopage{background:#0b1220}
+}
+
+/* Summary rows open the matching conversions in the search tab. */
+.sum-table tbody tr.clickable{cursor:pointer}
+.sum-table tbody tr.clickable .name,
+.sum-table tbody tr.clickable .hopn{transition:color var(--fast) var(--ease)}
+.sum-table tbody tr.clickable:hover .name,
+.sum-table tbody tr.clickable:hover .hopn{color:var(--accent)}
+.sum-table tbody tr.clickable:hover .barcell::after{content:"search \2192";
+ font:10px var(--mono);color:var(--accent);margin-left:8px;white-space:nowrap}

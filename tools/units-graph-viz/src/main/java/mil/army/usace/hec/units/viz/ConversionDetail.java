@@ -41,19 +41,18 @@ final class ConversionDetail {
     private static final String TESTS = """
         <div class="fx-tests">
         <div class="lbl">{{count}}</div>
-        <table>{{rows}}</table>
+        {{rows}}
         </div>
         """;
 
     private static final String TEST_ROW = """
-        <tr class="{{tone}}">
-        <td class="k">{{kind}}</td>
-        <td class="in">{{input}} {{fromUnit}}</td>
-        <td class="got">{{got}} {{toUnit}}</td>
-        <td class="v">{{verdict}}</td>
-        </tr>
-        <tr class="want {{tone2}}"><td></td>
-        <td colspan="3">expected {{want}} ± {{delta}}</td></tr>
+        <div class="tc {{tone}}">
+        <div class="tc-top">{{input}} {{fromUnit}}<span class="arrow">→</span>{{got}} {{toUnit}}
+        <span class="tc-mark">{{mark}}</span></div>
+        <div class="tc-sub"><span>expected <b>{{want}}</b></span>
+        <span>error <b>{{error}}</b>{{percent}}</span>
+        <span>tolerance ±{{delta}}</span></div>
+        </div>
         """;
 
     private ConversionDetail() {
@@ -159,6 +158,13 @@ final class ConversionDetail {
             .render();
     }
 
+    /**
+     * Every test that runs this conversion, in this direction.
+     *
+     * A CSV row written the other way still exercises this conversion: the suite
+     * converts across and then back, and the trip home is this one. It is listed
+     * as its own test, with the intermediate value the suite actually feeds in.
+     */
     private static String tests(String postfix, String inversePostfix, String from, String to,
                                 List<TestCase> direct, List<TestCase> roundTrip) {
         boolean canRoundTrip = inversePostfix != null;
@@ -169,15 +175,14 @@ final class ConversionDetail {
 
         var rows = new StringBuilder();
         for (TestCase test : direct) {
-            rows.append(testRow("direct", from, to, test.input(),
+            rows.append(testRow(from, to, test.input(),
                                 evaluate(postfix, test.input()), test.expected(), test.delta()));
         }
         if (canRoundTrip) {
             for (TestCase test : roundTrip) {
                 Double there = evaluate(inversePostfix, test.input());
                 Double back = there == null ? null : evaluate(postfix, there);
-                rows.append(testRow("round trip", from, to, there, back,
-                                    test.input(), test.inverseDelta()));
+                rows.append(testRow(from, to, there, back, test.input(), test.inverseDelta()));
             }
         }
 
@@ -196,13 +201,10 @@ final class ConversionDetail {
         }
     }
 
-    private static String testRow(String kind, String from, String to,
+    private static String testRow(String from, String to,
                                   Double input, Double got, double want, double delta) {
         if (input == null || got == null) {
-            return Html.fill("""
-                <tr class="bad"><td class="k">{{kind}}</td>
-                <td colspan="3">could not evaluate</td></tr>
-                """).put("kind", kind).render();
+            return "<div class=\"tc bad\"><div class=\"tc-top\">could not evaluate</div></div>";
         }
 
         double off = Math.abs(got - want);
@@ -210,17 +212,37 @@ final class ConversionDetail {
 
         return Html.fill(TEST_ROW)
             .put("tone", ok ? "ok" : "bad")
-            .put("tone2", ok ? "ok" : "bad")
-            .put("kind", kind)
             .put("input", FormulaRenderer.formatNumber(input))
             .raw("fromUnit", UnitFormat.unit(from))
             .put("got", FormulaRenderer.formatNumber(got))
             .raw("toUnit", UnitFormat.unit(to))
+            .put("mark", ok ? "✓ passed" : "✗ failed")
+            .put("want", FormulaRenderer.formatNumber(want))
             // The size of the miss is the diagnosis: rounding-level means the
             // tolerance is tight, large means a wrong constant.
-            .put("verdict", ok ? "✓" : "off by " + FormulaRenderer.formatNumber(off))
-            .put("want", FormulaRenderer.formatNumber(want))
+            .put("error", FormulaRenderer.formatNumber(off))
+            .put("percent", relativeError(off, want))
             .put("delta", FormulaRenderer.formatNumber(delta))
             .render();
+    }
+
+    /**
+     * The miss as a share of the expected value, which is what says whether it
+     * matters: 1e-9 off a billion is rounding, 1e-9 off 1e-9 is a wrong formula.
+     */
+    private static String relativeError(double off, double want) {
+        if (want == 0 || off == 0) {
+            return "";
+        }
+        double percent = off / Math.abs(want) * 100;
+        if (percent < 0.001) {
+            return " (<0.001%)";
+        }
+        return " (" + FormulaRenderer.formatNumber(round(percent, 3)) + "%)";
+    }
+
+    private static double round(double value, int places) {
+        double scale = Math.pow(10, places);
+        return Math.round(value * scale) / scale;
     }
 }
