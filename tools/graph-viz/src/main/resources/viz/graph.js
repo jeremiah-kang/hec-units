@@ -766,6 +766,12 @@
       busy: busy,
       reset: reset,
       restyle: function () { cy.style(cyStyle(true)).update(); },
+      pick: function (fromId, toId) {
+        if (!(fromId in indexOf) || !(toId in indexOf)) { return; }
+        pickA = indexOf[fromId];
+        pickB = indexOf[toId];
+        refreshPicks();
+      },
       destroy: function () {
         stopFlow();
         if (sim) { cancelAnimationFrame(sim); sim = null; }

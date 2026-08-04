@@ -11,7 +11,9 @@ import java.util.Map;
 public final class SummaryView {
 
     // How long the pen takes to travel the whole circle once
-    private static final double SWEEP = 1.1;
+    // How long the pen takes to go all the way round. Matched to the bars and
+    // the counting figures so the whole summary settles at once.
+    private static final double SWEEP = 0.7;
 
     // Radius chosen so the circumference is exactly 100, making arcs percentages
     private static final double RADIUS = 15.9154943;

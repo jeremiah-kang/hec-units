@@ -128,10 +128,13 @@ public final class SearchView {
                 .raw("status", group(new Group("test result", List.of(
                     new Option("passed", "passed"),
                     new Option("failed", "failed"),
-                    new Option("untested", "not tested")))))
+                    new Option("untested", "not tested"),
+                    new Option("missing", "no conversion exists")))))
                 .raw("kind", group(new Group("how it was made", List.of(
                     new Option("direct", "written by hand"),
-                    new Option("derived", "derived by chaining")))))
+                    new Option("derived", "derived by chaining"),
+                    new Option("linear", "hand-written, linear"),
+                    new Option("function", "hand-written, function")))))
                 .raw("coverage", group(new Group("coverage", List.of(
                     new Option("hasfail", "has a failing conversion"),
                     new Option("hasuntested", "has an untested conversion"),

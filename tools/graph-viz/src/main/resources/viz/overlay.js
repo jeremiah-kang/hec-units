@@ -166,7 +166,9 @@
 
       html += '<div class="rt' + (chosen ? ' chosen' : '') + '" style="--i:' + index + '">'
             + '<span class="hops">' + hops + (hops === 1 ? ' hop' : ' hops') + '</span>'
-            + '<span class="via">' + route.path.map(escText).join(ARROW) + '</span>'
+            + '<span class="via">'
+            + route.path.map(function (id) { return sup(escText(id)); }).join(ARROW)
+            + '</span>'
             + '<span class="fac' + (disagrees ? ' disagree' : '') + '">× ' + num(route.m)
             + (route.b !== 0 ? (route.b > 0 ? ' + ' : ' − ') + num(Math.abs(route.b)) : '')
             + (disagrees ? '   — disagrees with the shortest route' : '')
@@ -252,7 +254,7 @@
   var lastCard = null;
 
   // Actually open the selected card
-  function open(card) {
+  function open(card, preselect) {
     lastCard = card;
     otitle.textContent = card.querySelector('h2').textContent;
     pinned = null;
@@ -267,6 +269,7 @@
       raise(overlay);
       requestAnimationFrame(function () {
         seedApi = hydrateSeed(document.getElementById('ocy'), host.dataset.group);
+        if (preselect) { seedApi.pick(preselect.from, preselect.to); }
       });
       return;
     }

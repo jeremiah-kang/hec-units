@@ -109,9 +109,10 @@ public final class PageRenderer {
         """;
 
     private static final String KEY = """
-        <span class="key">
+        <button type="button" class="key" data-status="{{cls}}"
+                title="Search for these">
           <span class="k-top"><i class="sw {{cls}}"></i>{{label}}</span>{{counts}}
-        </span>
+        </button>
         """;
 
     private PageRenderer() {
@@ -141,7 +142,7 @@ public final class PageRenderer {
             .raw("legend", legend("legend", stats))
             .raw("body", body)
             .raw("coverbar", tabbed ? SearchView.bar("cover",
-                     "Filter dimensions - try Volume, ft3, or Length", List.of(
+                     "Filter dimensions - try Volume, " + Labels.plain("ft3") + ", or Length", List.of(
                      new SearchView.Group("coverage", List.of(
                      new SearchView.Option("failed", "has failures"),
                      new SearchView.Option("untested", "incomplete"),
@@ -149,7 +150,7 @@ public final class PageRenderer {
             .raw("seedpane", tabbed
                  ? Html.fill(SEEDPANE).raw("legend", seedLegend())
                        .raw("bar", SearchView.bar("seed",
-                            "Filter dimensions - try Volume, ft3, or Length", List.of(
+                            "Filter dimensions - try Volume, " + Labels.plain("ft3") + ", or Length", List.of(
                             new SearchView.Group("graph shape", List.of(
                             new SearchView.Option("tree", "trees"),
                             new SearchView.Option("cyclic", "has cycles"),
@@ -201,11 +202,11 @@ public final class PageRenderer {
     private static String seedLegend() {
         return """
             <div class="legend seedlegend">
-              <span><i class="sw t-si"></i>SI</span>
-              <span><i class="sw t-english"></i>English</span>
-              <span><i class="sw t-null"></i>system-agnostic</span>
-              <span><i class="ln"></i><code>linear:</code> scale + offset</span>
-              <span><i class="ln dash"></i><code>function:</code> arbitrary expression</span>
+              <button type="button" data-system="SI"><i class="sw t-si"></i>SI</button>
+              <button type="button" data-system="English"><i class="sw t-english"></i>English</button>
+              <button type="button" data-system="NULL"><i class="sw t-null"></i>system-agnostic</button>
+              <button type="button" data-kind="linear"><i class="ln"></i><code>linear:</code> scale + offset</button>
+              <button type="button" data-kind="function"><i class="ln dash"></i><code>function:</code> arbitrary expression</button>
               <span class="hint">a bowed pair is two different conversions for the same two units</span>
             </div>
             """;
@@ -215,11 +216,11 @@ public final class PageRenderer {
     private static String seedKey() {
         return """
             <div class="legend olegend skey">
-              <span><i class="sw t-si"></i>SI</span>
-              <span><i class="sw t-english"></i>English</span>
-              <span><i class="sw t-null"></i>system-agnostic</span>
-              <span><i class="ln"></i>linear</span>
-              <span><i class="ln dash"></i>function</span>
+              <button type="button" data-system="SI"><i class="sw t-si"></i>SI</button>
+              <button type="button" data-system="English"><i class="sw t-english"></i>English</button>
+              <button type="button" data-system="NULL"><i class="sw t-null"></i>system-agnostic</button>
+              <button type="button" data-kind="linear"><i class="ln"></i>linear</button>
+              <button type="button" data-kind="function"><i class="ln dash"></i>function</button>
               <span class="hint">click two units for routes · click an edge for its formula</span>
             </div>
             """;

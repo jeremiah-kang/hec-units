@@ -249,6 +249,37 @@
 
   var UNIT_ONLY = {hasfail: true, hasuntested: true, isolated: true};
 
+  /* The matrix has a cell for every ordered pair inside a dimension; the index
+     only carries the ones a conversion reaches. The rest are built here, once,
+     and only ever shown when someone asks for them by name. */
+  var noRoute = null;
+
+  function missingRows() {
+    if (noRoute) { return noRoute; }
+    var reached = {};
+    INDEX.forEach(function (row) { reached[row.f + '\t' + row.t] = true; });
+
+    var byDimension = {};
+    Object.keys(UNIT).forEach(function (id) {
+      var dim = UNIT[id].d;
+      (byDimension[dim] = byDimension[dim] || []).push(id);
+    });
+
+    noRoute = [];
+    Object.keys(byDimension).forEach(function (dim) {
+      var ids = byDimension[dim];
+      ids.forEach(function (from) {
+        ids.forEach(function (to) {
+          if (from !== to && !reached[from + '\t' + to]) {
+            noRoute.push({f: from, t: to, fn: UNIT[from].n, tn: UNIT[to].n,
+                          d: dim, s: 'missing', h: null, k: null});
+          }
+        });
+      });
+    });
+    return noRoute;
+  }
+
   function unitSide(name) {
     return name.indexOf('sys:') === 0 || !!UNIT_ONLY[name];
   }
@@ -307,11 +338,16 @@
     if (dimension && row.d !== dimension) {
       return false;
     }
-    if ((picked.passed || picked.failed || picked.untested) && !picked[row.s]) {
+    if ((picked.passed || picked.failed || picked.untested || picked.missing)
+        && !picked[row.s]) {
       return false;
     }
     if (picked.direct && !picked.derived && !row.k) { return false; }
     if (picked.derived && !picked.direct && row.k) { return false; }
+    if (picked.linear !== picked['function']) {
+      if (picked.linear && row.k !== 'linear') { return false; }
+      if (picked['function'] && row.k !== 'function') { return false; }
+    }
     return hopKeeps(row.h);
   }
 
@@ -380,20 +416,21 @@
   }
 
   function drawConversions() {
+    var rows = picked.missing ? INDEX.concat(missingRows()) : INDEX;
     var fromList = terms(qFrom);
     var toList = terms(qTo);
     var hits = [];
-    INDEX.forEach(function (row, i) {
+    rows.forEach(function (row, i) {
       if (convKeeps(row, fromList, toList)) {
         hits.push(i);
       }
     });
     hits.sort(byRank(function (i) {
-      return rank(INDEX[i].f, qFrom) + rank(INDEX[i].t, qTo);
+      return rank(rows[i].f, qFrom) + rank(rows[i].t, qTo);
     }));
 
     wlist.innerHTML = hits.slice(0, MAX_RESULTS).map(function (i, n) {
-      var row = INDEX[i];
+      var row = rows[i];
       return '<div class="res" data-i="' + i + '" style="--i:' + n + '">'
            + '<span class="dot ' + row.s + '"></span>'
            + '<span class="pairs">' + markTerms(raised(row.f), fromList) + ARROW
@@ -401,10 +438,10 @@
            + '<span class="dim">' + escText(row.d) + '</span></div>';
     }).join('') || NOTHING;
 
-    tally(hits.length, INDEX.length, 'conversions');
+    tally(hits.length, rows.length, 'conversions');
     wlist.querySelectorAll('.res').forEach(function (el) {
       el.addEventListener('click', function () {
-        selectResult(el, function () { showConversion(INDEX[+el.dataset.i]); });
+        selectResult(el, function () { showConversion(rows[+el.dataset.i]); });
       });
     });
   }
@@ -475,6 +512,21 @@
     }).join('') + '</dl>';
   }
 
+  /* The graph tab groups its cards by dimension, which is what a row carries. */
+  function graphCardFor(dimension) {
+    var host = document.querySelector('#tab-seed .cy[data-group="'
+                                      + cssValue(dimension) + '"]');
+    return host ? host.closest('.seedcard') : null;
+  }
+
+  function openGraph(dimension, from, to) {
+    var card = graphCardFor(dimension);
+    if (!card) { return; }
+    var tab = document.querySelector('.tab[data-pane="tab-seed"]');
+    if (tab) { tab.click(); }
+    open(card, {from: from, to: to});
+  }
+
   function showConversion(row) {
     var from = UNIT[row.f] || {};
     var to = UNIT[row.t] || {};
@@ -483,6 +535,11 @@
       return raised(id) + (unit.n ? ' - ' + unit.n : '')
            + (unit.y ? ' (' + systemName(unit.y) + ')' : '');
     }
+
+    var graphable = graphCardFor(row.d)
+      ? '<div class="info-sec"><button type="button" class="gograph">'
+        + 'Graph' + ARROW + escText(row.d) + '</button></div>'
+      : '';
 
     winfo.innerHTML = (renderedDetail(row.f, row.t)
         || '<div class="empty">No rendered formula for this pair.</div>')
@@ -495,8 +552,15 @@
           ['route', row.h ? row.h + (row.h === 1 ? ' hop' : ' hops') : 'not reachable'],
           ['kind', row.k ? 'written by hand (' + row.k + ':)' : 'derived by chaining']
         ])
-      + '</div>';
+      + '</div>' + graphable;
     winfo.scrollTop = 0;
+
+    var button = winfo.querySelector('.gograph');
+    if (button) {
+      button.addEventListener('click', function () {
+        openGraph(row.d, row.f, row.t);
+      });
+    }
   }
 
   function showUnit(id) {
@@ -591,10 +655,11 @@
     setFind('wfrom', qFrom);
     setFind('wto', qTo);
     setFind('wunit', qUnit);
-    if (opts.status) {
-      var box = wmenu.menu.querySelector('[data-test="' + opts.status + '"]');
+    [opts.status, opts.kind, opts.system && 'sys:' + opts.system].forEach(function (test) {
+      if (!test) { return; }
+      var box = wmenu.menu.querySelector('[data-test="' + cssValue(test) + '"]');
       if (box) { box.checked = true; }
-    }
+    });
     document.getElementById('wdim').value = opts.dim || '';
     document.getElementById('whopmode').value = opts.hops ? 'eq' : 'any';
     document.getElementById('whopn').value = opts.hops || 1;
@@ -657,6 +722,25 @@
 
     draw();
   }
+
+  /* --------------------------------------------------- legend keys deep-link */
+
+  /* Every key already says what a colour means; clicking one asks the question
+     it describes. The keys inside the overlay close it on the way out. */
+  document.querySelectorAll('.legend [data-status], .legend [data-system],'
+                          + ' .legend [data-kind]').forEach(function (key) {
+    key.classList.add('clickable');
+    key.addEventListener('click', function () {
+      if (overlay && overlay.classList.contains('open')) { close(); }
+      if (key.dataset.system) {
+        openFind({mode: 'unit', system: key.dataset.system});
+      } else if (key.dataset.kind) {
+        openFind({kind: key.dataset.kind});
+      } else {
+        openFind({status: key.dataset.status});
+      }
+    });
+  });
 
   /* -------------------------------------------------- summary rows deep-link */
 
