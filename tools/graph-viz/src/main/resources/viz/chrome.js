@@ -212,3 +212,24 @@
     }
     fit();
   });
+
+  // Theme toggle. The <head> script already picked the starting theme; this
+  // only handles switching away from it and remembering that choice.
+  (function () {
+    var btn = document.getElementById('themetoggle');
+    if (!btn) { return; }
+    var root = document.documentElement;
+    var label = btn.querySelector('.tlabel');
+
+    function paint() {
+      label.textContent = root.dataset.theme === 'dark' ? 'Light' : 'Dark';
+    }
+
+    btn.addEventListener('click', function () {
+      root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('viz-theme', root.dataset.theme); } catch (e) { }
+      paint();
+      restyleGraphs();
+    });
+    paint();
+  })();

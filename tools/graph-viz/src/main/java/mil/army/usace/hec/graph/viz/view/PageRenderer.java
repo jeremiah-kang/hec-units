@@ -15,6 +15,17 @@ public final class PageRenderer {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>{{title}}</title>
+            <script>
+              // Settle the theme before the first paint, or the page flashes
+              // the wrong one. A saved choice outranks the system setting.
+              (function () {
+                var saved = null;
+                try { saved = localStorage.getItem('viz-theme'); } catch (e) { }
+                var dark = window.matchMedia
+                        && matchMedia('(prefers-color-scheme:dark)').matches;
+                document.documentElement.dataset.theme = saved || (dark ? 'dark' : 'light');
+              })();
+            </script>
             <style>
         {{css}}
             </style>
@@ -25,7 +36,10 @@ public final class PageRenderer {
                 <h1>{{title2}}</h1>
                 <p class="lede">{{lede}}</p>
               </div>
-              {{summaryButton}}
+              <div class="headbtns">
+                {{summaryButton}}
+                {{themeButton}}
+              </div>
             </div>
             {{tabbar}}
             <div class="tabpane active" id="tab-coverage">
@@ -46,6 +60,21 @@ public final class PageRenderer {
             </script>
           </body>
         </html>
+        """;
+
+    // Both icons ship; CSS shows whichever one names the theme you would get.
+    private static final String THEME_BUTTON = """
+        <button id="themetoggle" type="button" title="Switch between light and dark">
+          <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.1"/>
+            <path d="M12 2.2v2.5M12 19.3v2.5M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8
+                     M2.2 12h2.5M19.3 12h2.5M4.5 19.5l1.8-1.8M17.7 6.3l1.8-1.8"/>
+          </svg>
+          <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20.3 14.6A8.4 8.4 0 0 1 9.4 3.7 8.6 8.6 0 1 0 20.3 14.6Z"/>
+          </svg>
+          <span class="tlabel"></span>
+        </button>
         """;
 
     private static final String OVERLAY = """
@@ -105,6 +134,7 @@ public final class PageRenderer {
             .raw("css", resource("/viz.css"))
             .raw("js", pageScript())
             .raw("cyto", tabbed ? resource("/cytoscape.min.js") : "")
+            .raw("themeButton", THEME_BUTTON)
             .raw("summaryButton", stats == null ? ""
                  : "<button id=\"sumopen\" type=\"button\">Summary</button>")
             .raw("tabbar", tabbed ? TABBAR : "")

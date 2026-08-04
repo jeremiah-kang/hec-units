@@ -154,6 +154,17 @@
     requestAnimationFrame(function () { host.classList.add('ready'); });
   }
 
+  function restyleGraphs() {
+    document.querySelectorAll('.seedcard .cy').forEach(function (host) {
+      if (!host.dataset.ready) { return; }
+      host.dataset.ready = '';
+      host.classList.remove('ready');
+      host.style.backgroundImage = '';
+      initThumb(host);
+    });
+    if (seedApi) { seedApi.restyle(); }
+  }
+
   if (hasGraphs && window.IntersectionObserver) {
     var watcher = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
@@ -228,7 +239,6 @@
     var pickA = null;
     var pickB = null;
     var selEdge = null;
-    var allowRevisit = false;
     var paths = [];
     var dragNode = null;
     var flow = null;                  // the route-flow animation frame
@@ -469,7 +479,7 @@
         if (path.length >= SEED_MAX_HOPS) { return; }
         ADJ[cur].forEach(function (step) {
           if (usedE[step.ei]) { return; }
-          if (!allowRevisit && seenN[step.other] && step.other !== to) { return; }
+          if (seenN[step.other] && step.other !== to) { return; }
           usedE[step.ei] = true;
           var fresh = !seenN[step.other];
           if (fresh) { seenN[step.other] = true; }
@@ -557,13 +567,10 @@
         + (paths.truncated ? ' (capped at ' + MAX_PATHS + ')' : '')
         + (paths.length ? ' · shortest ' + paths[0].length + ' hop'
            + (paths[0].length === 1 ? '' : 's') + ', longest '
-           + paths[paths.length - 1].length : '') + '</div>'
-        + '<label id="optoggle"><input type="checkbox"' + (allowRevisit ? ' checked' : '')
-        + '> include routes that revisit a unit</label>';
+           + paths[paths.length - 1].length : '') + '</div>';
 
       if (!paths.length) {
         panelShow(head + '<div class="empty">No route exists between these two units.</div>', true);
-        wireToggle();
         return;
       }
 
@@ -594,7 +601,6 @@
       }).join('');
 
       panelShow(head + rows, true);
-      wireToggle();
       odetail.querySelectorAll('.prow').forEach(function (row) {
         row.addEventListener('mouseenter', function () { showRoute(paths[+row.dataset.i]); });
         row.addEventListener('mouseleave', function () {
@@ -602,17 +608,6 @@
           markPicks();
         });
       });
-    }
-
-    function wireToggle() {
-      var box = odetail.querySelector('#optoggle input');
-      if (box) {
-        box.addEventListener('change', function () {
-          allowRevisit = box.checked;
-          paths = findPaths(pickA, pickB);
-          drawPanel();
-        });
-      }
     }
 
     /*
@@ -770,6 +765,7 @@
     return {
       busy: busy,
       reset: reset,
+      restyle: function () { cy.style(cyStyle(true)).update(); },
       destroy: function () {
         stopFlow();
         if (sim) { cancelAnimationFrame(sim); sim = null; }
