@@ -73,20 +73,36 @@
       {selector: 'edge.hot', style: {'line-color': token('--edge-pick'), 'width': 4}},
       {selector: 'edge.sel', style: {
         'line-color': token('--edge-pick'), 'width': 4.5, 'opacity': 1}},
-      // Deliberately does not touch line-style: a dashed edge is a function:
-      // conversion, and that has to stay readable while the route is lit.
-      {selector: 'edge.on-route', style: {
-        'line-color': token('--accent-deep'), 'width': 5, 'opacity': 1}},
+      // Nothing but full opacity. The chevrons riding above are the highlight,
+      // so recolouring the edge as well only put a blue line under blue
+      // arrows - and leaving it alone keeps solid-vs-dashed readable, which
+      // is how a linear conversion is told from a function one.
+      {selector: 'edge.on-route', style: {'opacity': 1}},
 
       // The travelling arrowheads. A throwaway edge laid over the real one,
       // pointing the way the route is walked rather than the way the
       // conversion happens to be stored.
+      // Amber against the blue route line, so the motion is unmistakably a
+      // separate layer rather than the edge itself changing. Long dashes read
+      // as travelling ticks, and an arrowhead at the middle and the end of
+      // every hop says which way without waiting for the animation.
+      // One blue family rather than two competing hues: the route underneath is
+      // the deeper blue, the moving chevrons the lighter one. Same colour,
+      // different lightness, so they separate without clashing. "vee" is the
+      // open > chevron - lighter than a filled triangle.
       {selector: 'edge.flowline', style: {
-        'line-color': '#eaf8ff', 'width': 2.5, 'opacity': 0.95,
-        'line-style': 'dashed', 'line-dash-pattern': [1, 17],
-        'target-arrow-shape': 'triangle', 'target-arrow-color': '#eaf8ff',
-        'arrow-scale': 0.85,
+        'line-color': token('--accent-deep'), 'width': 5, 'opacity': 1,
+        'line-style': 'dashed', 'line-dash-pattern': [13, 21], 'line-cap': 'butt',
+        'target-arrow-shape': 'vee', 'target-arrow-color': token('--accent-deep'),
+        'mid-target-arrow-shape': 'vee', 'mid-target-arrow-color': token('--accent-deep'),
+        'arrow-scale': 1.8,
         'events': 'no', 'z-index': 20}},
+
+      // The same idea while a single unit is picked, dialled down: it is a
+      // hint about where you could go, not a route you have chosen.
+      {selector: 'edge.flowline.hint', style: {
+        'width': 2.5, 'opacity': 0.7, 'arrow-scale': 1.25,
+        'line-dash-pattern': [9, 24]}},
 
       {selector: 'node.pick-a', style: {
         'border-color': token('--pick-1'), 'border-width': 4, 'opacity': 1}},
@@ -390,6 +406,13 @@
       cy.nodes().removeClass('hover preview');
       markPicks();
       paths = (pickA !== null && pickB !== null) ? findPaths(pickA, pickB) : [];
+      // With one unit chosen there is no route to show yet, so the flow points
+      // outward along every conversion leaving it: these are the next steps.
+      if (pickA !== null && pickB === null) {
+        startFlow(ADJ[pickA].map(function (step) {
+          return {ei: step.ei, from: pickA, to: step.other};
+        }), 'hint');
+      }
       drawPanel();
     }
 
@@ -597,7 +620,7 @@
      * travelled backwards gets its offset advanced the other way and the flow
      * still reads as one continuous direction.
      */
-    function startFlow(path) {
+    function startFlow(path, extra) {
       stopFlow();
       // Source and target follow the direction of travel, and the bow flips
       // with them, so the copy traces the same curve the real edge draws.
@@ -609,11 +632,11 @@
                        source: back ? real.data('target') : real.data('source'),
                        target: back ? real.data('source') : real.data('target'),
                        bow: back ? -(real.data('bow') || 0) : (real.data('bow') || 0)},
-                classes: 'flowline'};
+                classes: extra ? 'flowline ' + extra : 'flowline'};
       }));
       var offset = 0;
       (function tickFlow() {
-        offset = (offset + 0.5) % 18;
+        offset = (offset + 0.5) % 34;
         cy.batch(function () { flowing.style('line-dash-offset', -offset); });
         flow = requestAnimationFrame(tickFlow);
       })();

@@ -1,5 +1,6 @@
 package mil.army.usace.hec.graph.viz.view;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -8,6 +9,9 @@ import java.util.Map;
  * are, and what needs attention.
  */
 public final class SummaryView {
+
+    // How long the pen takes to travel the whole circle once
+    private static final double SWEEP = 1.1;
 
     // Radius chosen so the circumference is exactly 100, making arcs percentages
     private static final double RADIUS = 15.9154943;
@@ -29,13 +33,16 @@ public final class SummaryView {
           <h4>Coverage by dimension</h4>
           <div class="sum-note">Alphabetical, like the matrices. The bar is the share of
             reachable conversions that a test exercises. Click a heading to re-sort.</div>
-          <table class="sum-table dims sortable">
-            <thead><tr><th>dimension</th><th>units</th><th>reachable</th><th>passed</th>
-            <th>failed</th><th>untested</th><th>coverage</th><th></th></tr></thead>
-            <tbody>
-              {{dimensions}}
-            </tbody>
-          </table>
+          <div class="foldwrap" data-visible="{{visible}}">
+            <table class="sum-table dims sortable">
+              <thead><tr><th>dimension</th><th>units</th><th>reachable</th><th>passed</th>
+              <th>failed</th><th>untested</th><th>coverage</th><th></th></tr></thead>
+              <tbody>
+                {{dimensions}}
+              </tbody>
+            </table>
+          </div>
+          {{dimtoggle}}
           {{routes}}
           <h4>Worth a look</h4>
           <div class="sum-cards">
@@ -92,8 +99,14 @@ public final class SummaryView {
         </div>
         """;
 
+    /**
+     * The dash length carried as a custom property, so the arc can be animated
+     * from nothing up to it - the same growing motion the bars use, rather
+     * than the whole circle spinning into place.
+     */
     private static final String ARC = """
         <circle class="seg {{cls}}" cx="21" cy="21" r="{{r}}" fill="none" stroke-width="5"
+          style="--dash:{{share}} {{rest}};animation-delay:{{delay}}s;animation-duration:{{dur}}s"
           stroke-dasharray="{{share}} {{rest}}" stroke-dashoffset="{{offset}}"></circle>
         """;
 
@@ -106,10 +119,35 @@ public final class SummaryView {
             .raw("donutkey", donutKey(stats))
             .raw("figures", figures(stats))
             .raw("breakdown", breakdown(stats))
-            .raw("dimensions", Html.each(stats.groups(), SummaryView::dimensionRow))
+            .put("visible", VISIBLE_DIMENSIONS)
+            .raw("dimensions", dimensionRows(stats))
+            .raw("dimtoggle", foldToggle(stats.groups().size()))
             .raw("routes", routes(stats, routeTitle))
             .raw("cards", cards(stats))
             .render();
+    }
+
+    /** How many rows of a long table are worth showing before folding. */
+    private static final int VISIBLE_DIMENSIONS = 8;
+
+    private static String dimensionRows(Stats stats) {
+        var rows = new StringBuilder();
+        for (Stats.Group group : stats.groups()) {
+            rows.append(dimensionRow(group));
+        }
+        return rows.toString();
+    }
+
+    /** Nothing to open when the table is already short enough to read. */
+    private static String foldToggle(int total) {
+        if (total <= VISIBLE_DIMENSIONS) {
+            return "";
+        }
+        return Html.fill("""
+            <button type="button" class="foldbtn" aria-expanded="false"
+                    data-more="Show all {{total}} dimensions" data-less="Show fewer"
+                    >Show all {{total2}} dimensions</button>
+            """).put("total", total).put("total2", total).render();
     }
 
     private static String figures(Stats stats) {
@@ -138,6 +176,12 @@ public final class SummaryView {
 
         var arcs = new StringBuilder();
         double offset = 25;                     // rotates the start to twelve o'clock
+        double travelled = 0;                   // how far round the pen already is
+
+        // One pen going round once, changing color at each boundary. Each arc
+        // waits for the pen to reach it and then takes exactly as long as its
+        // own share, so the speed never changes and the slices read as one
+        // stroke rather than as several growing separately.
         for (Slice slice : slices) {
             double share = stats.percentOfPairs(slice.count());
             if (share <= 0) {
@@ -149,8 +193,11 @@ public final class SummaryView {
                 .put("share", round(share))
                 .put("rest", round(100 - share))
                 .put("offset", round(offset))
+                .put("delay", seconds(SWEEP * travelled / 100))
+                .put("dur", seconds(SWEEP * share / 100))
                 .render());
             offset -= share;
+            travelled += share;
         }
 
         return Html.fill("""
@@ -168,27 +215,69 @@ public final class SummaryView {
     }
 
     private static final String KEY_ROW = """
-        <div class="dk-row"><i class="sw {{cls}}"></i>
+        <div class="dk-row">
           <span class="dk-label">{{label}}</span>
+          <span class="dk-bar"><span class="bar {{cls}}" style="width:{{width}}%"></span></span>
           <span class="dk-count">{{count}}</span>
-          <span class="dk-share">{{share}}</span>
         </div>
         """;
 
-    /** Only shown once the donut is opened up, so it can afford real detail. */
+    private static final String KEY_BLOCK = """
+        <div class="dk-block">
+          <div class="dk-title">{{title}}</div>
+          <div class="dk-note">{{note}}</div>
+          {{rows}}
+        </div>
+        """;
+
+    /**
+     * What the donut cannot say on its own.
+     *
+     * The circle is dominated by pairs that have no conversion at all, and the
+     * table below it is alphabetical, so neither answers "where would testing
+     * do the most good". These are the dimensions holding the largest gaps,
+     * ranked, which is the one ordering nothing else on the page provides.
+     */
     private static String donutKey(Stats stats) {
-        return keyRow("passed", "passed", stats.passed(), stats)
-             + keyRow("failed", "failed", stats.failed(), stats)
-             + keyRow("untested", "reachable, not tested", stats.untested(), stats)
-             + keyRow("missing", "no conversion exists", stats.missing(), stats);
+        var gaps = stats.groups().stream()
+            .filter(group -> group.untested() > 0)
+            .sorted(Comparator.comparingInt(Stats.Group::untested).reversed())
+            .limit(6)
+            .toList();
+
+        var broken = stats.groups().stream()
+            .filter(group -> group.failed() > 0)
+            .sorted(Comparator.comparingInt(Stats.Group::failed).reversed())
+            .limit(6)
+            .toList();
+
+        return block("biggest gaps",
+                     gaps.isEmpty() ? "Every reachable conversion is tested."
+                                    : "Dimensions with the most untested conversions.",
+                     gaps, Stats.Group::untested, "untested")
+             + block("where the failures are",
+                     broken.isEmpty() ? "Nothing is failing."
+                                      : "Dimensions with a conversion that does not agree.",
+                     broken, Stats.Group::failed, "failed");
     }
 
-    private static String keyRow(String cls, String label, int count, Stats stats) {
-        return Html.fill(KEY_ROW)
-            .put("cls", cls)
-            .put("label", label)
-            .put("count", count)
-            .put("share", Stats.percent(stats.percentOfPairs(count)))
+    private static String block(String title, String note, List<Stats.Group> groups,
+                                java.util.function.ToIntFunction<Stats.Group> count, String cls) {
+        int most = groups.stream().mapToInt(count).max().orElse(1);
+        var rows = new StringBuilder();
+        for (Stats.Group group : groups) {
+            int value = count.applyAsInt(group);
+            rows.append(Html.fill(KEY_ROW)
+                .put("label", group.name())
+                .put("cls", cls)
+                .put("count", value)
+                .put("width", round(most == 0 ? 0 : value * 100.0 / most))
+                .render());
+        }
+        return Html.fill(KEY_BLOCK)
+            .put("title", title)
+            .put("note", note)
+            .raw("rows", rows.toString())
             .render();
     }
 
@@ -277,6 +366,10 @@ public final class SummaryView {
             return String.join(", ", items);
         }
         return String.join(", ", items.subList(0, limit)) + ", and " + (items.size() - limit) + " more";
+    }
+
+    private static String seconds(double value) {
+        return String.format(java.util.Locale.ROOT, "%.3f", value);
     }
 
     private static String round(double value) {
