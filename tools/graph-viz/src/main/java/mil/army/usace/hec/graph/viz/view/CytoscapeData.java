@@ -93,7 +93,7 @@ public final class CytoscapeData {
         double[] at = placed.positions().get(node.id());
         double[] fraction = placed.normalised().get(node.id());
         return "{\"data\":{\"id\":" + Json.str(node.id())
-             + ",\"label\":" + Json.str(node.id())
+             + ",\"label\":" + Json.str(Labels.plain(node.id()))
              + ",\"name\":" + Json.str(node.label())
              + (fraction == null ? ""
                 : ",\"nx\":" + round(fraction[0]) + ",\"ny\":" + round(fraction[1]))

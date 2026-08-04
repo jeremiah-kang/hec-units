@@ -74,14 +74,15 @@ public final class MatrixView {
             .put("failed", counts.getOrDefault("failed", 0))
             .put("untested", counts.getOrDefault("untested", 0))
             .raw("tally", tally(members, graph))
-            .raw("columns", Html.each(members, to -> Html.tag("th").text(to.id()).toString()))
+            .raw("columns", Html.each(members,
+                 to -> Html.tag("th").html(Labels.html(to.id())).toString()))
             .raw("rows", Html.each(members, from -> row(from, members, graph)))
             .render();
     }
 
     private static String row(Node from, List<Node> members, Graph graph) {
         return Html.fill(ROW)
-            .put("unit", from.id())
+            .raw("unit", Labels.html(from.id()))
             .raw("cells", Html.each(members, to -> cell(from, to, graph)))
             .render();
     }
@@ -95,7 +96,7 @@ public final class MatrixView {
 
         return Html.tag("td")
             .attr("class", state)
-            .attr("title", from.id() + " → " + to.id() + ": " + state)
+            .attr("title", Labels.plain(from.id()) + " → " + Labels.plain(to.id()) + ": " + state)
             .attr("data-from", from.id())
             .attr("data-to", to.id())
             // The edge carries its own description, so the enlarged view needs no

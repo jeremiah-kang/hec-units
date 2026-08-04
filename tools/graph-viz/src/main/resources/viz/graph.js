@@ -507,8 +507,8 @@
     // Present the right side panel results
     function factorHtml(result, A, B) {
       if (!result) { return 'not a simple scale + offset - cannot compose numerically'; }
-      var out = '<span class="u">' + escText(B) + '</span> = <span class="u">'
-              + escText(A) + '</span>';
+      var out = '<span class="u">' + sup(escText(B)) + '</span> = <span class="u">'
+              + sup(escText(A)) + '</span>';
       if (result.m !== 1) { out += ' × ' + num(result.m); }
       if (result.b !== 0) { out += (result.b >= 0 ? ' + ' : ' − ') + num(Math.abs(result.b)); }
       return out;
@@ -531,7 +531,7 @@
       }
       var A = N[pickA].id;
       if (pickB === null) {
-        panelShow(clearButton() + '<h4><span class="pk p1">1</span>' + escText(A)
+        panelShow(clearButton() + '<h4><span class="pk p1">1</span>' + sup(escText(A))
                 + ARROW + '?</h4>' + namesLine(pickA, null)
                 + '<div class="pth-sub">now click the destination unit</div>', true);
         return;
@@ -549,8 +549,8 @@
       });
 
       var head = clearButton()
-        + '<h4><span class="pk p1">1</span>' + escText(A)
-        + ARROW + '<span class="pk p2">2</span>' + escText(B) + '</h4>'
+        + '<h4><span class="pk p1">1</span>' + sup(escText(A))
+        + ARROW + '<span class="pk p2">2</span>' + sup(escText(B)) + '</h4>'
         + namesLine(pickA, pickB)
         + '<div class="pth-sub">' + paths.length + ' route' + (paths.length === 1 ? '' : 's')
         + (paths.truncated ? ' (capped at ' + MAX_PATHS + ')' : '')
@@ -583,7 +583,7 @@
             + GROUP_COLORS[order.indexOf(keyOf(r)) % GROUP_COLORS.length] + '"></span>'
           : '';
         var chain = [A].concat(p.map(function (h) { return N[h.to].id; }))
-                       .map(escText).join(ARROW);
+                       .map(function (id) { return sup(escText(id)); }).join(ARROW);
         return '<div class="prow' + (i === 0 ? ' best' : '') + '" data-i="' + i
              + '" style="--i:' + i + '">'
              + '<div class="top"><span class="hops">' + p.length + ' hop'
@@ -713,7 +713,7 @@
       }
       neighbourhood(i);
       panelShow('<div class="fx"><div class="fx-head"><span class="u">'
-        + escText(N[i].id) + '</span></div><div class="fx-names">'
+        + sup(escText(N[i].id)) + '</span></div><div class="fx-names">'
         + escText(N[i].name || '') + '</div></div>', false);
     });
 

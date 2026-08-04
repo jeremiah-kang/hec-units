@@ -396,8 +396,8 @@
       var row = INDEX[i];
       return '<div class="res" data-i="' + i + '" style="--i:' + n + '">'
            + '<span class="dot ' + row.s + '"></span>'
-           + '<span class="pairs">' + markTerms(row.f, fromList) + ARROW
-           + markTerms(row.t, toList) + '</span>'
+           + '<span class="pairs">' + markTerms(raised(row.f), fromList) + ARROW
+           + markTerms(raised(row.t), toList) + '</span>'
            + '<span class="dim">' + escText(row.d) + '</span></div>';
     }).join('') || NOTHING;
 
@@ -422,7 +422,7 @@
       var unit = UNIT[id];
       return '<div class="res" data-u="' + escText(id) + '" style="--i:' + n + '">'
            + '<span class="dot ' + unitTone(unit) + '"></span>'
-           + '<span class="pairs">' + markTerms(id, list)
+           + '<span class="pairs">' + markTerms(raised(id), list)
            + '<span class="sub">' + markTerms(unit.n, list) + '</span></span>'
            + '<span class="dim">' + escText(unit.d) + '</span></div>';
     }).join('') || NOTHING;
@@ -480,7 +480,7 @@
     var to = UNIT[row.t] || {};
 
     function unitLine(id, unit) {
-      return id + (unit.n ? ' - ' + unit.n : '')
+      return raised(id) + (unit.n ? ' - ' + unit.n : '')
            + (unit.y ? ' (' + systemName(unit.y) + ')' : '');
     }
 
@@ -511,19 +511,19 @@
     var conversions = neighbours.length
       ? '<div class="nbs">' + neighbours.map(function (other) {
           return '<button type="button" class="nb" data-to="' + escText(other) + '">'
-               + escText(id) + ARROW + escText(other) + '</button>';
+               + sup(escText(id)) + ARROW + sup(escText(other)) + '</button>';
         }).join('') + '</div>'
         + '<div class="info-note">written by hand, one step. Click one to open it.</div>'
       : '<div class="info-note">none - nothing converts directly to or from this unit.</div>';
 
     winfo.innerHTML = '<div class="fx">'
-      + '<div class="fx-head">' + escText(id)
+      + '<div class="fx-head">' + sup(escText(id))
       + '<span class="chip kind">' + escText(systemName(unit.y)) + '</span></div>'
       + '<div class="fx-names">' + escText(unit.n) + ' · ' + escText(unit.d) + '</div>'
       + (unit.x ? '<div class="info-text">' + escText(unit.x) + '</div>' : '')
       + '<div class="info-sec"><div class="lbl">facts</div>'
       + factsList([
-          ['abbreviation', id],
+          ['abbreviation', raised(id)],
           ['name', unit.n],
           ['dimension', unit.d],
           ['system', systemName(unit.y)],

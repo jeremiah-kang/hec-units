@@ -9,6 +9,30 @@
   var HINT = '<div class="empty">Hover a cell to preview its conversion. '
            + '<b>Click</b> to pin it, click the same cell again to release it.</div>';
 
+  /* Raises an exponent in already-escaped markup: m3 reads as m with a raised
+     3. Only text between tags is touched, so a <mark> the search inserted is
+     left intact. Same rule as Labels.java: digits count as a power only when
+     they directly follow a letter. */
+  function sup(escaped) {
+    return String(escaped).replace(/(^|>)([^<]+)/g, function (all, before, text) {
+      return before + text.replace(/([A-Za-z])(\d+)/g, '$1<sup>$2</sup>');
+    });
+  }
+
+  /* The same rule for somewhere a tag cannot go: a value that will be escaped,
+     or text handed to a canvas. Mirrors Labels.plain in the Java side. */
+  var RAISED = '\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079';
+
+  function raised(text) {
+    return String(text).replace(/([A-Za-z])(\d+)/g, function (all, letter, digits) {
+      var out = '';
+      for (var i = 0; i < digits.length; i++) {
+        out += RAISED.charAt(+digits.charAt(i));
+      }
+      return letter + out;
+    });
+  }
+
   // Every rendered conversion points the same way with the same glyph.
   var ARROW = '<span class="arrow">→</span>';
 
