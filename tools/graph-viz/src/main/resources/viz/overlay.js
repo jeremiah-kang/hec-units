@@ -276,6 +276,11 @@
     otally.innerHTML = card.querySelector('.tally').innerHTML;
     stage.innerHTML = card.querySelector('table').outerHTML;
 
+    // The card's copy is scaled down to fit its thumbnail, and that inline
+    // transform rides along in the clone. The enlarged view sizes itself with
+    // fit() instead, so the scale has to come back off here.
+    stage.querySelector('table').style.transform = '';
+
     var corner = stage.querySelector('th.corner');
     if (corner) {
       corner.textContent = 'from ↓';
@@ -312,3 +317,23 @@
   });
 
   document.getElementById('oclose').addEventListener('click', close);
+
+  /* A matrix preview is scaled down to fit its window, so a thirty unit
+     dimension and a three unit one produce the same size card and neither
+     needs a scrollbar. Layout is untouched by a transform, so the table stays
+     centred and only its painted size changes. */
+  function fitThumbs() {
+    document.querySelectorAll('.thumb.scroll').forEach(function (box) {
+      var table = box.querySelector('table');
+      if (!table) {
+        return;
+      }
+      table.style.transform = '';
+      var room = Math.min(box.clientWidth / table.offsetWidth,
+                          box.clientHeight / table.offsetHeight, 1);
+      table.style.transform = 'scale(' + room.toFixed(3) + ')';
+    });
+  }
+
+  fitThumbs();
+  window.addEventListener('resize', fitThumbs);

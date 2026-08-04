@@ -24,7 +24,7 @@ public final class MatrixView {
         <div class="card" style="--i:{{index}}" data-name="{{group}}" data-find="{{find}}"
          data-failed="{{failed}}" data-untested="{{untested}}">
           <header><h2>{{group}}</h2><span class="meta">{{units}} units</span>{{tally}}</header>
-          <div class="scroll">
+          <div class="thumb scroll">
             <table class="matrix">
               <thead><tr><th class="corner"></th>{{columns}}</tr></thead>
               <tbody>

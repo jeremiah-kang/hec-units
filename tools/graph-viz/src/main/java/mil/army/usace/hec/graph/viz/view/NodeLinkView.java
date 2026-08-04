@@ -20,7 +20,7 @@ public final class NodeLinkView {
          data-find="{{find}}" data-shape="{{shape}}">
           <header><h2>{{group}}</h2><span class="meta">{{meta}}</span>
           <span class="tally"><span class="badge {{shape}}">{{badge}}</span></span></header>
-          <div class="cy" data-group="{{group2}}" style="aspect-ratio:{{ratio}}"></div>
+          <div class="thumb"><div class="cy" data-group="{{group2}}"></div></div>
         </div>
         """;
 
@@ -80,7 +80,6 @@ public final class NodeLinkView {
             .put("badge", badge)
             .put("meta", nodes.size() + " units")
             .put("find", searchText(group, nodes))
-            .put("ratio", ratio(nodes, edges))
             .render();
     }
     /** Everything a card should match on: its group and every unit inside it. */
@@ -90,11 +89,5 @@ public final class NodeLinkView {
             text.append(' ').append(node.id()).append(' ').append(node.label());
         }
         return text.toString().toLowerCase(java.util.Locale.ROOT);
-    }
-
-    private static String ratio(List<Node> nodes, List<Edge> edges) {
-        GraphLayout.Placed placed = GraphLayout.of(nodes, edges);
-        return String.format(java.util.Locale.ROOT, "%.0f/%.0f",
-                             placed.width(), placed.height());
     }
 }

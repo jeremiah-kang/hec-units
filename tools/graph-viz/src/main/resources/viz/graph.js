@@ -151,6 +151,7 @@
     var picture = cy.png({output: 'base64uri', full: true, scale: 2, bg: 'transparent'});
     cy.destroy();
     host.style.backgroundImage = 'url(' + picture + ')';
+    requestAnimationFrame(function () { host.classList.add('ready'); });
   }
 
   if (hasGraphs && window.IntersectionObserver) {
