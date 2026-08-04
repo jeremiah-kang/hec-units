@@ -186,7 +186,7 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 #obar h3,#sbar h3{margin:0;font-size:19px;letter-spacing:-.01em}
 #oclose,#sclose{margin-left:auto}
 
-#oaxis .arrow{margin:0 5px;font-size:1.1em}
+#oaxis .arrow{margin:0 6px;font-size:1.3em}
 #oaxis{font:11.5px var(--mono);color:var(--lt-ink-2);background:var(--glass-line);
  border:1px solid var(--glass-strong);padding:2px 10px;border-radius:var(--r-pill)}
 
@@ -257,8 +257,15 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 
 /* Direction is the point of every one of these panels, so the arrow is sized
    and colored to be read, not inferred. */
-.arrow{color:var(--accent-deep);font-family:var(--sans);font-weight:700;
- font-size:1.25em;line-height:1;margin:0 8px;vertical-align:-.05em}
+/* inline-flex centres the glyph on the line box instead of hanging it off the
+   text baseline, which is what made it sit low next to larger unit names. */
+/* A fixed square box with the glyph centred in it, so placement comes from the
+   box and not from where a given font happens to hang U+2192 on the baseline.
+   line-height:0 collapsed that box, which is what left it sitting low. */
+.arrow{display:inline-flex;align-items:center;justify-content:center;
+ width:1em;height:1em;line-height:1;
+ color:var(--accent-deep);font-family:var(--sans);font-weight:700;
+ font-size:1.5em;margin:0 9px;vertical-align:middle}
 
 .fx-head{display:flex;align-items:center;gap:2px;flex-wrap:wrap;font-size:19px;
  color:var(--lt-ink);padding-bottom:8px}
@@ -334,7 +341,37 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
  background:var(--glass);border:1px solid var(--glass-line);
  border-radius:var(--r-l);padding:22px 26px;box-shadow:var(--shadow-l)}
 
-.donut{width:160px;height:160px;flex:none}
+/* ---- the donut, and its closer look ----
+   Growing in normal flow is what pushes the rest of the summary down, so the
+   whole panel reflows as one movement instead of anything being overlaid. */
+.donutbtn{background:none;border:none;padding:0;cursor:pointer;flex:none;
+ border-radius:50%;line-height:0;
+ transition:transform var(--med) var(--ease),filter var(--med) var(--ease)}
+.donutbtn:hover{transform:scale(1.03);filter:drop-shadow(0 0 14px #38bdf844)}
+.donutbtn:active{transform:scale(.99)}
+.donutbtn:focus-visible{outline:2px solid var(--accent-deep);outline-offset:6px}
+
+.donut{width:160px;height:160px;flex:none;
+ transition:width var(--slow) var(--ease),height var(--slow) var(--ease)}
+.sum-top.open .donut{width:300px;height:300px}
+
+.donutkey{flex-basis:100%;overflow:hidden;max-height:0;opacity:0;
+ transition:max-height var(--slow) var(--ease),opacity var(--med) var(--ease),
+   margin-top var(--slow) var(--ease)}
+.sum-top.open .donutkey{max-height:220px;opacity:1;margin-top:6px}
+.dk-row{display:flex;align-items:center;gap:12px;padding:7px 2px;
+ border-bottom:1px solid var(--glass-line);font-size:13.5px}
+.dk-row:last-child{border-bottom:none}
+.dk-label{flex:1;color:var(--lt-ink-2)}
+.dk-count{font:600 15px var(--mono);color:var(--lt-ink);min-width:64px;text-align:right}
+.dk-share{font:13px var(--mono);color:var(--lt-ink-4);min-width:78px;text-align:right}
+
+/* Every conversion slot: a status row opens the search filtered to it. */
+.sum-table tbody tr[data-state]:not([data-state=""]){cursor:pointer}
+.sum-table tbody tr[data-state]:not([data-state=""]):hover td{background:#ffffff0d}
+.sum-table tbody tr[data-state]:not([data-state=""]):hover .barcell::after{
+ content:"search \2192";font:10px var(--mono);color:var(--accent);
+ margin-left:8px;white-space:nowrap}
 #summary.in .donut{animation:sweep .7s var(--ease) both}
 .donut-hole{stroke:var(--glass-line)}
 .donut .seg.passed{stroke:var(--ok)}
@@ -446,16 +483,19 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 }
 
 /* ============================================================ tabs */
-.tabs{display:flex;gap:4px;margin:20px 0 0;border-bottom:1px solid var(--line)}
+.tabs{display:flex;gap:4px;margin:20px 0 0;border-bottom:1px solid var(--line);
+ position:relative}
 .tab{background:none;border:none;margin-bottom:-1px;position:relative;
  padding:9px 18px 11px;cursor:pointer;font:600 13.5px var(--sans);color:var(--ink-3);
  transition:color var(--fast) var(--ease)}
-.tab::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2px;
- border-radius:var(--r-pill);background:var(--accent-deep);
- transform:scaleX(0);transition:transform var(--med) var(--ease)}
+/* One indicator that travels, rather than three that blink on and off - the
+   movement itself says which way you went. */
+.tabink{position:absolute;bottom:-1px;left:0;height:2px;width:0;
+ border-radius:var(--r-pill);background:var(--accent-deep);pointer-events:none;
+ transition:transform var(--med) var(--ease),width var(--med) var(--ease)}
 .tab:hover{color:var(--ink)}
 .tab.active{color:var(--ink)}
-.tab.active::after{transform:scaleX(1)}
+
 .tab:focus-visible{outline:2px solid var(--accent-deep);outline-offset:-2px}
 
 .tabpane{display:none}
@@ -645,7 +685,7 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 .emptystate b{color:var(--ink);display:block;margin-bottom:5px;font-size:15px}
 
 /* ============================================================ wiki tab */
-.wiki{display:flex;flex-direction:column;gap:14px}
+.wiki{display:flex;flex-direction:column;gap:14px;padding-top:24px}
 .find.big{max-width:none;flex:1}
 .find.big input{padding:14px 38px 14px 44px;font-size:16px;border-radius:var(--r-l)}
 .find.big svg{left:16px;width:19px;height:19px}
@@ -684,7 +724,7 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 .res.on{background:var(--card);border-color:var(--accent-deep)}
 .res .pairs{font:13.5px var(--mono);color:var(--ink);flex:1;min-width:0;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.res .pairs .arrow{margin:0 7px;font-size:1.15em}
+.res .pairs .arrow{margin:0 8px}
 .res .sub{color:var(--ink-3);font-size:12px;margin-left:10px}
 .res .dim{font:11px var(--mono);color:var(--ink-3);white-space:nowrap}
 .res .dot{width:9px;height:9px;border-radius:3px;flex:none}
@@ -724,7 +764,7 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 .nb:hover{background:#ffffff1f;color:var(--lt-ink)}
 .nb:active{transform:scale(.97)}
 .nb:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
-.nb .arrow{margin:0 6px;font-size:1.1em}
+.nb .arrow{margin:0 7px;font-size:1.35em}
 
 /* ============================================================ matrix search */
 #ofind{flex:none;width:190px}
@@ -773,3 +813,15 @@ td.self{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#e8edf2 3px,#e8
 .sum-table tbody tr.clickable:hover .hopn{color:var(--accent)}
 .sum-table tbody tr.clickable:hover .barcell::after{content:"search \2192";
  font:10px var(--mono);color:var(--accent);margin-left:8px;white-space:nowrap}
+
+/* ====================================================== reduced motion
+   Someone who has asked their system for less motion still gets every state
+   change - the transitions collapse to near-instant rather than disappearing,
+   so nothing that was communicated by movement is silently lost. */
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{
+  animation-duration:.01ms !important;
+  animation-iteration-count:1 !important;
+  transition-duration:.01ms !important;
+  scroll-behavior:auto !important}
+}

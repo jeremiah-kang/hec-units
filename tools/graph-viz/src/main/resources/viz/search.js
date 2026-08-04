@@ -591,6 +591,10 @@
     setFind('wfrom', qFrom);
     setFind('wto', qTo);
     setFind('wunit', qUnit);
+    if (opts.status) {
+      var box = wmenu.menu.querySelector('[data-test="' + opts.status + '"]');
+      if (box) { box.checked = true; }
+    }
     document.getElementById('wdim').value = opts.dim || '';
     document.getElementById('whopmode').value = opts.hops ? 'eq' : 'any';
     document.getElementById('whopn').value = opts.hops || 1;
@@ -659,16 +663,21 @@
   document.querySelectorAll('#sbody .sum-table tbody tr').forEach(function (row) {
     var name = row.querySelector('.name');
     var hop = row.querySelector('.hopn');
-    if (!name && !hop) {
+    var state = row.dataset.state;
+    if (!name && !hop && !state) {
       return;
     }
-    row.classList.add('clickable');
+    if (name || hop) {
+      row.classList.add('clickable');
+    }
     row.addEventListener('click', function () {
       showSummary(false);
       if (name) {
         openFind({dim: name.textContent});
-      } else {
+      } else if (hop) {
         openFind({hops: parseInt(hop.textContent, 10)});
+      } else {
+        openFind({status: state});
       }
     });
   });

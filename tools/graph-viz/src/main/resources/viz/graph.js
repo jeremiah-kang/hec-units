@@ -73,8 +73,20 @@
       {selector: 'edge.hot', style: {'line-color': token('--edge-pick'), 'width': 4}},
       {selector: 'edge.sel', style: {
         'line-color': token('--edge-pick'), 'width': 4.5, 'opacity': 1}},
+      // Deliberately does not touch line-style: a dashed edge is a function:
+      // conversion, and that has to stay readable while the route is lit.
       {selector: 'edge.on-route', style: {
         'line-color': token('--accent-deep'), 'width': 5, 'opacity': 1}},
+
+      // The travelling arrowheads. A throwaway edge laid over the real one,
+      // pointing the way the route is walked rather than the way the
+      // conversion happens to be stored.
+      {selector: 'edge.flowline', style: {
+        'line-color': '#eaf8ff', 'width': 2.5, 'opacity': 0.95,
+        'line-style': 'dashed', 'line-dash-pattern': [1, 17],
+        'target-arrow-shape': 'triangle', 'target-arrow-color': '#eaf8ff',
+        'arrow-scale': 0.85,
+        'events': 'no', 'z-index': 20}},
 
       {selector: 'node.pick-a', style: {
         'border-color': token('--pick-1'), 'border-width': 4, 'opacity': 1}},
@@ -202,6 +214,8 @@
     var allowRevisit = false;
     var paths = [];
     var dragNode = null;
+    var flow = null;                  // the route-flow animation frame
+    var flowing = null;
 
     function busy() { return selEdge !== null || pickA !== null; }
 
@@ -287,6 +301,7 @@
 
     // remove highlight states
     function clearMarks() {
+      stopFlow();
       cy.elements().removeClass('dim sel on-route pick-a pick-b hot');
     }
 
@@ -304,7 +319,18 @@
       E.forEach(function (edge, j) { edge.ele.toggleClass('dim', edge.s !== i && edge.t !== i); });
     }
 
+    /* A ring that expands off the edge and fades, so a click lands somewhere
+       visible even when the edge was already the highlighted one. */
+    function pulseEdge(ele) {
+      ele.style({'overlay-color': token('--edge-pick'),
+                 'overlay-padding': 1, 'overlay-opacity': 0.4});
+      ele.animate({style: {'overlay-padding': 20, 'overlay-opacity': 0}},
+                  {duration: 420, easing: 'ease-out',
+                   complete: function () { ele.removeStyle(); }});
+    }
+
     function selectEdge(j) {
+      pulseEdge(E[j].ele);
       if (selEdge === j) {
         reset();                          // clicking the same edge releases it
         return;
@@ -395,8 +421,9 @@
                         position: {x: N[i].x, y: N[i].y - 38},
                         selectable: false, grabbable: false,
                         classes: 'bdg p' + order});
-      ele.style('opacity', 0);
-      ele.animate({style: {opacity: 1}}, {duration: 180});
+      ele.style({opacity: 0, width: 8, height: 8});
+      ele.animate({style: {opacity: 1, width: 26, height: 26}},
+                  {duration: 220, easing: 'ease-out'});
       badges[order] = ele;
     }
 
@@ -564,6 +591,45 @@
       }
     }
 
+    /*
+     * Dots running along the highlighted route, from the first pick toward the
+     * second. cytoscape draws a dash pattern from source to target, so an edge
+     * travelled backwards gets its offset advanced the other way and the flow
+     * still reads as one continuous direction.
+     */
+    function startFlow(path) {
+      stopFlow();
+      // Source and target follow the direction of travel, and the bow flips
+      // with them, so the copy traces the same curve the real edge draws.
+      flowing = cy.add(path.map(function (h, k) {
+        var real = E[h.ei].ele;
+        var back = h.from !== E[h.ei].s;
+        return {group: 'edges',
+                data: {id: '__flow' + k,
+                       source: back ? real.data('target') : real.data('source'),
+                       target: back ? real.data('source') : real.data('target'),
+                       bow: back ? -(real.data('bow') || 0) : (real.data('bow') || 0)},
+                classes: 'flowline'};
+      }));
+      var offset = 0;
+      (function tickFlow() {
+        offset = (offset + 0.5) % 18;
+        cy.batch(function () { flowing.style('line-dash-offset', -offset); });
+        flow = requestAnimationFrame(tickFlow);
+      })();
+    }
+
+    function stopFlow() {
+      if (flow) {
+        cancelAnimationFrame(flow);
+        flow = null;
+      }
+      if (flowing && flowing.length) {
+        flowing.remove();
+      }
+      flowing = null;
+    }
+
     function showRoute(p) {
       clearMarks();
       var onE = {};
@@ -576,6 +642,7 @@
       });
       N.forEach(function (node, j) { node.ele.toggleClass('dim', !onN[j]); });
       markPicks();
+      startFlow(p);
     }
 
     // All mouse events
@@ -680,6 +747,7 @@
       busy: busy,
       reset: reset,
       destroy: function () {
+        stopFlow();
         if (sim) { cancelAnimationFrame(sim); sim = null; }
         if (resetButton) { resetButton.onclick = null; }
         odetail.removeEventListener('click', onPanelClick);

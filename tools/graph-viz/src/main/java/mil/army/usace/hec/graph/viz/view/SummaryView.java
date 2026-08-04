@@ -14,7 +14,12 @@ public final class SummaryView {
 
     private static final String LAYOUT = """
         <div class="sum">
-          <div class="sum-top">{{donut}}<div class="sum-figures">{{figures}}</div></div>
+          <div class="sum-top">
+            <button type="button" class="donutbtn" aria-expanded="false"
+                    title="Click for a closer look">{{donut}}</button>
+            <div class="sum-figures">{{figures}}</div>
+            <div class="donutkey">{{donutkey}}</div>
+          </div>
           <h4>Every conversion slot</h4>
           <div class="sum-note">Both directions of every pair within a dimension,
             excluding a unit with itself.</div>
@@ -48,7 +53,7 @@ public final class SummaryView {
         """;
 
     private static final String BAR_ROW = """
-        <tr><td><i class="sw {{cls}}"></i></td><td>{{label}}</td>
+        <tr data-state="{{state}}"><td><i class="sw {{cls}}"></i></td><td>{{label}}</td>
         <td class="n">{{count}}</td><td class="p">{{share}}</td>
         <td class="barcell"><span class="bar {{cls2}}" style="width:{{width}}%"></span></td></tr>
         """;
@@ -98,6 +103,7 @@ public final class SummaryView {
     public static String render(Stats stats, String routeTitle) {
         return Html.fill(LAYOUT)
             .raw("donut", donut(stats))
+            .raw("donutkey", donutKey(stats))
             .raw("figures", figures(stats))
             .raw("breakdown", breakdown(stats))
             .raw("dimensions", Html.each(stats.groups(), SummaryView::dimensionRow))
@@ -161,6 +167,31 @@ public final class SummaryView {
             .render();
     }
 
+    private static final String KEY_ROW = """
+        <div class="dk-row"><i class="sw {{cls}}"></i>
+          <span class="dk-label">{{label}}</span>
+          <span class="dk-count">{{count}}</span>
+          <span class="dk-share">{{share}}</span>
+        </div>
+        """;
+
+    /** Only shown once the donut is opened up, so it can afford real detail. */
+    private static String donutKey(Stats stats) {
+        return keyRow("passed", "passed", stats.passed(), stats)
+             + keyRow("failed", "failed", stats.failed(), stats)
+             + keyRow("untested", "reachable, not tested", stats.untested(), stats)
+             + keyRow("missing", "no conversion exists", stats.missing(), stats);
+    }
+
+    private static String keyRow(String cls, String label, int count, Stats stats) {
+        return Html.fill(KEY_ROW)
+            .put("cls", cls)
+            .put("label", label)
+            .put("count", count)
+            .put("share", Stats.percent(stats.percentOfPairs(count)))
+            .render();
+    }
+
     private static String breakdown(Stats stats) {
         return barRow("passed", "passed", stats.passed(), stats)
              + barRow("failed", "failed", stats.failed(), stats)
@@ -176,6 +207,8 @@ public final class SummaryView {
         double share = stats.percentOfPairs(count);
         return Html.fill(BAR_ROW)
             .put("cls", cls).put("cls2", cls)
+            // "missing" means no conversion exists, so there is nothing to list
+            .put("state", cls.equals("missing") ? "" : cls)
             .put("label", label)
             .put("count", count)
             .put("share", Stats.percent(share))

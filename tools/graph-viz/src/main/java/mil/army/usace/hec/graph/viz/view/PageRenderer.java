@@ -141,6 +141,7 @@ public final class PageRenderer {
           <button class="tab active" data-pane="tab-coverage" type="button">Coverage</button>
           <button class="tab" data-pane="tab-seed" type="button">Conversion graphs</button>
           <button class="tab" data-pane="tab-find" type="button">Search</button>
+          <span class="tabink"></span>
         </div>
         """;
 
