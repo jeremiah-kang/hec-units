@@ -13,6 +13,7 @@
   --panel:#ffffffe0; --panel-deep:#ffffff; --panel-2:#e7edf5;
   --panel-ink:#0f172a; --panel-ink-2:#475569; --panel-ink-3:#64748b; --panel-ink-4:#7c8ba1;
   --panel-line:#0f172a24;
+  --grid:#0f172a0d; --stage-glow:#38bdf814;
   --glass:#0f172a08; --glass-line:#0f172a12; --glass-strong:#0f172a14;
 
   /* ink */
@@ -326,7 +327,9 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 /* A flex container throws away whitespace-only children, so the space the
    template puts between a value and its unit vanished and 5 1/ft read as
    51/ft. The gap has to be a real property. */
-.tc-top{display:flex;align-items:center;flex-wrap:wrap;font-size:14.5px;color:var(--panel-ink)}
+.tc-top{display:flex;align-items:baseline;flex-wrap:wrap;font-size:14.5px;
+ color:var(--panel-ink)}
+.tc-top .arrow,.tc-top .tc-mark{align-self:center}
 .tc-top .u{margin-left:.34em}
 .tc-top .arrow{margin:0 9px}
 .tc-mark{margin-left:auto;padding-left:10px;font:11px var(--mono);white-space:nowrap}
@@ -515,8 +518,9 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
   --veil:rgba(10,15,28,.92);
   --panel:#0f172acc; --panel-deep:#0b1220; --panel-2:#334155;
   --panel-ink:#f1f5f9; --panel-ink-2:#cbd5e1; --panel-ink-3:#94a3b8; --panel-ink-4:#64748b;
-  --panel-line:var(--glass-strong);
-  --glass:var(--glass); --glass-line:var(--glass-line); --glass-strong:var(--glass-strong);
+  --panel-line:#ffffff2e;
+  --grid:#ffffff0a; --stage-glow:#38bdf81f;
+  --glass:#ffffff0a; --glass-line:#ffffff14; --glass-strong:#ffffff1f;
   --untested:#475569; --missing:#1e293b; --stripe:#334155;
 }
 :root[data-theme=dark] .card, :root[data-theme=dark] .legend{background:var(--dark-2);border-color:var(--dark-3);box-shadow:none}
@@ -597,7 +601,12 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 .card:hover .scroll{transform:scale(1.03)}
 
 #overlay.seedmode #ostage{padding:0;overflow:hidden;display:block}
-#ocy{width:100%;height:100%;cursor:grab}
+#ocy{width:100%;height:100%;cursor:grab;position:relative;
+ background:
+  radial-gradient(120% 85% at 50% 42%,var(--stage-glow),transparent 68%),
+  linear-gradient(var(--grid) 1px,transparent 1px) 0 0/46px 46px,
+  linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/46px 46px}
+.flowlayer{position:absolute;left:0;top:0;pointer-events:none;z-index:5}
 #ocy:active{cursor:grabbing}
 
 /* ============================================================ route explorer */
@@ -611,7 +620,11 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
  border:1px solid transparent;cursor:pointer;
  animation:rise var(--med) var(--ease) both;animation-delay:calc(min(var(--i,0),12)*22ms);
  transition:background var(--fast) var(--ease),border-color var(--fast) var(--ease)}
-.prow:hover{background:var(--glass-line)}
+.prow{cursor:pointer}
+.prow:hover{background:var(--glass-line);border-color:var(--panel-line)}
+.prow.held{background:#38bdf826;border-color:var(--accent-deep);
+ box-shadow:0 0 0 1px var(--accent-deep) inset}
+.prow.held .hops{background:var(--accent-deep);color:#062033}
 .prow.best{background:#38bdf814;border-color:#38bdf84d}
 .prow .top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .prow .hops{font:10px var(--mono);background:var(--glass-strong);color:var(--panel-ink-2);
@@ -779,23 +792,23 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 
 .results{max-height:66vh;overflow-y:auto;scrollbar-width:thin;
  scrollbar-color:var(--line) transparent;scrollbar-gutter:stable}
-.res{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-m);
+.results .res{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-m);
  cursor:pointer;border:1px solid transparent;
  animation:rise var(--fast) var(--ease) both;animation-delay:calc(min(var(--i,0),16)*14ms);
  transition:background var(--fast) var(--ease),border-color var(--fast) var(--ease)}
-.res:hover{background:var(--card);border-color:var(--line)}
-.res.on{background:var(--card);border-color:var(--accent-deep)}
-.res .pairs{font:13.5px var(--mono);color:var(--ink);flex:1;min-width:0;
+.results .res:hover{background:var(--card);border-color:var(--line)}
+.results .res.on{background:var(--card);border-color:var(--accent-deep)}
+.results .res .pairs{font:13.5px var(--mono);color:var(--ink);flex:1;min-width:0;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.res .pairs .arrow{margin:0 8px}
-.res .sub{color:var(--ink-3);font-size:12px;margin-left:10px}
-.res .dim{font:11px var(--mono);color:var(--ink-3);white-space:nowrap}
-.res .dot{width:9px;height:9px;border-radius:3px;flex:none}
-.res .dot.passed{background:var(--ok)}
-.res .dot.failed{background:var(--bad)}
-.res .dot.untested{background:var(--untested)}
-.res .dot.missing{background:var(--missing);box-shadow:inset 0 0 0 1px var(--untested)}
-.res mark{background:#38bdf840;color:inherit;border-radius:2px;padding:0 1px}
+.results .res .pairs .arrow{margin:0 8px}
+.results .res .sub{color:var(--ink-3);font-size:12px;margin-left:10px}
+.results .res .dim{font:11px var(--mono);color:var(--ink-3);white-space:nowrap}
+.results .res .dot{width:9px;height:9px;border-radius:3px;flex:none}
+.results .res .dot.passed{background:var(--ok)}
+.results .res .dot.failed{background:var(--bad)}
+.results .res .dot.untested{background:var(--untested)}
+.results .res .dot.missing{background:var(--missing);box-shadow:inset 0 0 0 1px var(--untested)}
+.results .res mark{background:#38bdf840;color:inherit;border-radius:2px;padding:0 1px}
 
 .infopage{position:sticky;top:16px;background:var(--panel-deep);border:1px solid var(--panel-line);
  border-radius:var(--r-l);padding:20px 22px;color:var(--panel-ink);min-height:220px;
@@ -904,12 +917,20 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 .olegend button:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
 .legend .key.total{cursor:default}
 .gograph{display:flex;align-items:center;justify-content:center;width:100%;
- gap:2px;font:11.5px var(--mono);cursor:pointer;padding:9px 14px;
- border-radius:var(--r-m);background:var(--glass-strong);
- border:1px solid var(--panel-line);color:var(--panel-ink-2);
- transition:color var(--fast) var(--ease),transform var(--fast) var(--ease)}
-.gograph:hover{color:var(--panel-ink)}
-.gograph:active{transform:scale(.98)}
-.gograph .arrow{margin:0 8px}
+ gap:2px;font:600 12px var(--mono);letter-spacing:.03em;cursor:pointer;
+ padding:11px 14px;border-radius:var(--r-m);background:var(--accent-deep);
+ border:1px solid var(--accent-deep);color:#062033;
+ box-shadow:0 1px 0 #0f172a1f,0 6px 18px -8px #38bdf8a6;
+ transition:filter var(--fast) var(--ease),transform var(--fast) var(--ease),
+ box-shadow var(--fast) var(--ease)}
+.gograph:hover{filter:brightness(1.08);transform:translateY(-1px);
+ box-shadow:0 2px 0 #0f172a1f,0 10px 24px -10px #38bdf8cc}
+.gograph:active{transform:translateY(0) scale(.985);
+ box-shadow:0 1px 0 #0f172a1f,0 4px 12px -6px #38bdf88c}
+.gograph:focus-visible{outline:2px solid var(--panel-ink);outline-offset:3px}
+/* the shared arrow glyph is a mask, so it takes the button's own ink */
+.gograph .arrow{margin:0 8px;background-color:#062033}
+@media(prefers-reduced-motion:reduce){.gograph,.gograph:hover,.gograph:active{
+ transition:none;transform:none}}
 @media(prefers-reduced-motion:reduce){.legend .key,.seedlegend button,
  .olegend button,.gograph{transition:none}}

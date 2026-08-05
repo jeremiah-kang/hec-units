@@ -70,6 +70,11 @@
         'line-dash-pattern': enlarged ? [7, 5] : [6, 4]}},
 
       {selector: '.dim', style: {'opacity': 0.12}},
+
+      // Held back for the entrance. A class rather than a style bypass, so it
+      // rides the transition already declared above and leaves nothing behind
+      // that could outrank .dim later.
+      {selector: '.entering', style: {'opacity': 0}},
       {selector: 'edge.hot', style: {'line-color': token('--edge-pick'), 'width': 4}},
       {selector: 'edge.sel', style: {
         'line-color': token('--edge-pick'), 'width': 4.5, 'opacity': 1}},
@@ -78,31 +83,6 @@
       // arrows - and leaving it alone keeps solid-vs-dashed readable, which
       // is how a linear conversion is told from a function one.
       {selector: 'edge.on-route', style: {'opacity': 1}},
-
-      // The travelling arrowheads. A throwaway edge laid over the real one,
-      // pointing the way the route is walked rather than the way the
-      // conversion happens to be stored.
-      // Amber against the blue route line, so the motion is unmistakably a
-      // separate layer rather than the edge itself changing. Long dashes read
-      // as travelling ticks, and an arrowhead at the middle and the end of
-      // every hop says which way without waiting for the animation.
-      // One blue family rather than two competing hues: the route underneath is
-      // the deeper blue, the moving chevrons the lighter one. Same colour,
-      // different lightness, so they separate without clashing. "vee" is the
-      // open > chevron - lighter than a filled triangle.
-      {selector: 'edge.flowline', style: {
-        'line-color': token('--accent-deep'), 'width': 5, 'opacity': 1,
-        'line-style': 'dashed', 'line-dash-pattern': [13, 21], 'line-cap': 'butt',
-        'target-arrow-shape': 'vee', 'target-arrow-color': token('--accent-deep'),
-        'mid-target-arrow-shape': 'vee', 'mid-target-arrow-color': token('--accent-deep'),
-        'arrow-scale': 1.8,
-        'events': 'no', 'z-index': 20}},
-
-      // The same idea while a single unit is picked, dialled down: it is a
-      // hint about where you could go, not a route you have chosen.
-      {selector: 'edge.flowline.hint', style: {
-        'width': 2.5, 'opacity': 0.7, 'arrow-scale': 1.25,
-        'line-dash-pattern': [9, 24]}},
 
       {selector: 'node.pick-a', style: {
         'border-color': token('--pick-1'), 'border-width': 4, 'opacity': 1}},
@@ -119,7 +99,10 @@
         'events': 'no', 'z-index': 9}},
       {selector: 'node.bdg.p1', style: {'background-color': token('--pick-1')}},
       {selector: 'node.bdg.p2', style: {'background-color': token('--pick-2')}},
-      {selector: 'node.hover', style: {'border-width': 3.5}},
+      {selector: 'node.hover', style: {
+        'border-width': 3.5,
+        'overlay-color': token('--accent-deep'),
+        'overlay-opacity': 0.16, 'overlay-padding': 7}},
       {selector: 'node.preview', style: {
         'border-color': token('--pick-2'), 'border-width': 3.5}},
       {selector: 'node.pop', style: {'border-width': 9}}
@@ -154,14 +137,9 @@
     requestAnimationFrame(function () { host.classList.add('ready'); });
   }
 
+  /* Only the open graph needs re-styling. Thumbnails draw with fixed colours,
+     so they look the same in both themes and re-baking them is wasted work. */
   function restyleGraphs() {
-    document.querySelectorAll('.seedcard .cy').forEach(function (host) {
-      if (!host.dataset.ready) { return; }
-      host.dataset.ready = '';
-      host.classList.remove('ready');
-      host.style.backgroundImage = '';
-      initThumb(host);
-    });
     if (seedApi) { seedApi.restyle(); }
   }
 
@@ -242,7 +220,18 @@
     var paths = [];
     var dragNode = null;
     var flow = null;                  // the route-flow animation frame
-    var flowing = null;
+    var flowPath = null;              // the hops the arrows are running along
+    var flowHint = false;
+    var flowInk = token('--accent-deep');
+    var phase = 0;
+    var FLOW_STEPS = 22;              // segments a bowed hop is flattened into
+    var enterTimers = [];
+
+    // Above the graph and ignoring the mouse, so it never blocks a click.
+    var flowCanvas = document.createElement('canvas');
+    flowCanvas.className = 'flowlayer';
+    host.appendChild(flowCanvas);
+    var flowCtx = flowCanvas.getContext('2d');
 
     function busy() { return selEdge !== null || pickA !== null; }
 
@@ -601,39 +590,170 @@
       }).join('');
 
       panelShow(head + rows, true);
+      // Hovering previews a route; clicking holds it, so the arrows keep
+      // running while the mouse goes elsewhere. Rebuilt with the panel, so a
+      // fresh pair of picks starts unpinned.
+      var held = null;
       odetail.querySelectorAll('.prow').forEach(function (row) {
-        row.addEventListener('mouseenter', function () { showRoute(paths[+row.dataset.i]); });
+        var index = +row.dataset.i;
+        row.addEventListener('mouseenter', function () {
+          if (held === null) { showRoute(paths[index]); }
+        });
         row.addEventListener('mouseleave', function () {
-          clearMarks();
-          markPicks();
+          if (held === null) {
+            clearMarks();
+            markPicks();
+          }
+        });
+        row.addEventListener('click', function () {
+          odetail.querySelectorAll('.prow.held').forEach(function (other) {
+            other.classList.remove('held');
+          });
+          held = held === index ? null : index;
+          row.classList.toggle('held', held === index);
+          showRoute(paths[index]);      // the cursor is still here either way
         });
       });
     }
 
     /*
-     * Dots running along the highlighted route, from the first pick toward the
-     * second. cytoscape draws a dash pattern from source to target, so an edge
-     * travelled backwards gets its offset advanced the other way and the flow
-     * still reads as one continuous direction.
+     * Arrows travelling along the route, from the first pick toward the second.
+     *
+     * They are drawn on a canvas of our own rather than by cytoscape, which can
+     * only put an arrowhead at the start, middle or end of an edge and can only
+     * dash a line with straight segments. Neither of those can be a chevron
+     * that moves, and a dash has no direction of its own.
      */
+    function curveOf(hop) {
+      var edge = E[hop.ei].ele;
+      var forward = hop.from === E[hop.ei].s;
+      var a = forward ? edge.sourceEndpoint() : edge.targetEndpoint();
+      var b = forward ? edge.targetEndpoint() : edge.sourceEndpoint();
+      var mid = edge.midpoint();
+      // cytoscape bends an edge as a quadratic bezier but never hands over the
+      // control point. Its midpoint does: at t=0.5 a quadratic sits at
+      // (a + 2c + b)/4, so c falls out. A straight edge returns its own middle
+      // and the curve flattens, so this covers bowed and straight alike -
+      // no guessing which way a bow leans.
+      return {a: a, b: b,
+              c: {x: 2 * mid.x - (a.x + b.x) / 2, y: 2 * mid.y - (a.y + b.y) / 2}};
+    }
+
+    // Flatten a hop into a polyline plus the distance travelled to each point,
+    // so arrows can be spaced evenly by length rather than by parameter.
+    function polyOf(hop) {
+      var curve = curveOf(hop);
+      var points = [];
+      var runs = [0];
+      for (var i = 0; i <= FLOW_STEPS; i++) {
+        var t = i / FLOW_STEPS;
+        var u = 1 - t;
+        points.push({x: u * u * curve.a.x + 2 * u * t * curve.c.x + t * t * curve.b.x,
+                     y: u * u * curve.a.y + 2 * u * t * curve.c.y + t * t * curve.b.y});
+        if (i) {
+          var dx = points[i].x - points[i - 1].x;
+          var dy = points[i].y - points[i - 1].y;
+          runs.push(runs[i - 1] + Math.sqrt(dx * dx + dy * dy));
+        }
+      }
+      return {points: points, runs: runs, length: runs[runs.length - 1]};
+    }
+
+    function alongPoly(poly, distance) {
+      var i = 1;
+      while (i < poly.runs.length && poly.runs[i] < distance) { i++; }
+      if (i >= poly.runs.length) { return null; }
+      var a = poly.points[i - 1];
+      var b = poly.points[i];
+      var span = poly.runs[i] - poly.runs[i - 1] || 1;
+      var t = (distance - poly.runs[i - 1]) / span;
+      return {x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t,
+              angle: Math.atan2(b.y - a.y, b.x - a.x)};
+    }
+
+    function sizeFlow() {
+      var ratio = window.devicePixelRatio || 1;
+      flowCanvas.width = Math.max(1, Math.round(host.clientWidth * ratio));
+      flowCanvas.height = Math.max(1, Math.round(host.clientHeight * ratio));
+      flowCanvas.style.width = host.clientWidth + 'px';
+      flowCanvas.style.height = host.clientHeight + 'px';
+      flowCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function drawFlow() {
+      flowCtx.clearRect(0, 0, host.clientWidth, host.clientHeight);
+      if (!flowPath || !flowPath.length) { return; }
+
+      var zoom = cy.zoom();
+      var pan = cy.pan();
+      var size = (flowHint ? 5.5 : 7.5) * zoom;
+      var gap = (flowHint ? 30 : 24) * zoom;
+
+      var thin = (flowHint ? 2.1 : 2.9) * zoom;
+      var wide = thin * 3.1;
+      var alpha = flowHint ? 0.6 : 1;
+      flowCtx.lineCap = 'round';
+      flowCtx.lineJoin = 'round';
+      flowCtx.strokeStyle = flowInk;
+
+      // One phase carried across the hops, so the arrows read as a single
+      // stream rather than restarting at every unit.
+      var carry = phase % gap;
+      flowPath.forEach(function (hop) {
+        var poly = polyOf(hop);
+        var span = poly.length * zoom;
+        for (var d = carry; d < span; d += gap) {
+          var at = alongPoly(poly, d / zoom);
+          if (!at) { break; }
+          flowCtx.save();
+          flowCtx.translate(at.x * zoom + pan.x, at.y * zoom + pan.y);
+          flowCtx.rotate(at.angle);
+          flowCtx.beginPath();
+          flowCtx.moveTo(-size, -size * 0.7);
+          flowCtx.lineTo(0, 0);
+          flowCtx.lineTo(-size, size * 0.7);
+          flowCtx.lineWidth = wide;
+          flowCtx.globalAlpha = alpha * 0.22;
+          flowCtx.stroke();
+          flowCtx.lineWidth = thin;
+          flowCtx.globalAlpha = alpha;
+          flowCtx.stroke();
+          flowCtx.restore();
+        }
+        carry = Math.max(0, carry + Math.ceil((span - carry) / gap) * gap - span);
+      });
+
+      if (!flowHint) {
+        ring(pickA, token('--pick-1'), zoom, pan);
+        ring(pickB, token('--pick-2'), zoom, pan);
+      }
+      flowCtx.globalAlpha = 1;
+    }
+
+    function ring(index, colour, zoom, pan) {
+      if (index === null || !N[index]) { return; }
+      var node = N[index].ele;
+      var beat = (Math.sin(phase / 16) + 1) / 2;            // 0..1, slow
+      var radius = (Math.max(node.outerWidth(), node.outerHeight()) / 2 + 7 + beat * 7) * zoom;
+      flowCtx.beginPath();
+      flowCtx.arc(node.position('x') * zoom + pan.x, node.position('y') * zoom + pan.y,
+                  radius, 0, Math.PI * 2);
+      flowCtx.strokeStyle = colour;
+      flowCtx.lineWidth = 2 * zoom;
+      flowCtx.globalAlpha = 0.5 - beat * 0.32;
+      flowCtx.stroke();
+      flowCtx.strokeStyle = flowInk;
+    }
+
     function startFlow(path, extra) {
       stopFlow();
-      // Source and target follow the direction of travel, and the bow flips
-      // with them, so the copy traces the same curve the real edge draws.
-      flowing = cy.add(path.map(function (h, k) {
-        var real = E[h.ei].ele;
-        var back = h.from !== E[h.ei].s;
-        return {group: 'edges',
-                data: {id: '__flow' + k,
-                       source: back ? real.data('target') : real.data('source'),
-                       target: back ? real.data('source') : real.data('target'),
-                       bow: back ? -(real.data('bow') || 0) : (real.data('bow') || 0)},
-                classes: extra ? 'flowline ' + extra : 'flowline'};
-      }));
-      var offset = 0;
+      if (!path || !path.length) { return; }
+      flowPath = path;
+      flowHint = extra === 'hint';
+      flowInk = token('--accent-deep');
       (function tickFlow() {
-        offset = (offset + 0.5) % 34;
-        cy.batch(function () { flowing.style('line-dash-offset', -offset); });
+        phase += flowHint ? 0.5 : 0.85;
+        drawFlow();
         flow = requestAnimationFrame(tickFlow);
       })();
     }
@@ -643,10 +763,8 @@
         cancelAnimationFrame(flow);
         flow = null;
       }
-      if (flowing && flowing.length) {
-        flowing.remove();
-      }
-      flowing = null;
+      flowPath = null;
+      flowCtx.clearRect(0, 0, host.clientWidth, host.clientHeight);
     }
 
     function showRoute(p) {
@@ -756,16 +874,34 @@
     }
 
     panelShow(SEED_HINT, false);
+    sizeFlow();
+    cy.on('resize', sizeFlow);
+
     cy.zoom(1);
     cy.pan({x: 0, y: 0});
     draw();
     alpha = data.tree ? 0.5 : 1;
     sim = requestAnimationFrame(step);
 
+    // The graph assembles itself: units land one after another, then the
+    // conversions between them draw in.
+    cy.elements().addClass('entering');
+    N.forEach(function (node, i) {
+      enterTimers.push(setTimeout(function () {
+        node.ele.removeClass('entering');
+      }, 30 + i * 15));
+    });
+    enterTimers.push(setTimeout(function () {
+      cy.edges().removeClass('entering');
+    }, 60 + N.length * 15));
+
     return {
       busy: busy,
       reset: reset,
-      restyle: function () { cy.style(cyStyle(true)).update(); },
+      restyle: function () {
+        flowInk = token('--accent-deep');
+        cy.style(cyStyle(true)).update();
+      },
       pick: function (fromId, toId) {
         if (!(fromId in indexOf) || !(toId in indexOf)) { return; }
         pickA = indexOf[fromId];
@@ -777,6 +913,8 @@
         if (sim) { cancelAnimationFrame(sim); sim = null; }
         if (resetButton) { resetButton.onclick = null; }
         odetail.removeEventListener('click', onPanelClick);
+        enterTimers.forEach(clearTimeout);
+        flowCanvas.remove();
         cy.destroy();
       }
     };
