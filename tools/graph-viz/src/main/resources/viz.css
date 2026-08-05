@@ -64,8 +64,7 @@ body{margin:0;padding:32px;color:var(--ink);
  background:linear-gradient(180deg,var(--page) 0%,var(--page-deep) 100%) fixed;
  font:15px/1.6 var(--sans)}
 
-h1{margin:0 0 6px;font-size:26px;letter-spacing:-.015em}
-.lede{margin:0 0 8px;color:var(--ink-2);max-width:78ch}
+h1{margin:0;font-size:26px;letter-spacing:-.015em}
 
 /* ============================================================ shared pieces */
 
@@ -97,7 +96,7 @@ button{font:inherit}
  background:#fef3c7;border:1px solid #fcd34d;color:#92400e}
 .notice code{font:12px var(--mono);background:#00000014;padding:1px 6px;border-radius:var(--r-s)}
 
-.pagehead{display:flex;align-items:flex-start;gap:24px;justify-content:space-between}
+.pagehead{display:flex;align-items:center;gap:24px;justify-content:space-between}
 
 /* ============================================================ legend / key */
 .legend{display:flex;gap:20px;flex-wrap:wrap;margin:18px 0 28px;padding:14px 18px;
@@ -532,7 +531,6 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 }
 :root[data-theme=dark] .card, :root[data-theme=dark] .legend{background:var(--dark-2);border-color:var(--dark-3);box-shadow:none}
 :root[data-theme=dark] .card:hover{box-shadow:0 6px 20px #0006;border-color:var(--panel-ink-4)}
-:root[data-theme=dark] .lede{color:var(--lt-ink-3)}
 :root[data-theme=dark] .notice{background:#78350f66;border-color:#f59e0b66;color:#fcd34d}
 :root[data-theme=dark] .notice code{background:var(--glass-line)}
 :root[data-theme=dark] .sw{border-color:var(--panel-ink-4)}
@@ -675,10 +673,6 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
    explicit Clear selection button instead. */
 #overlay.seedmode #odetail.locked::before{display:none}
 
-/* Sits above the heading rather than floating beside it, so a long unit name
-   cannot wrap underneath it. */
-.clearpick{float:none;display:block;margin:0 0 10px auto}
-
 /* Picked units are marked on the canvas by cytoscape, which colors the border
    and prefixes the label with a circled digit. These chips repeat the same two
    colors in the panel heading, so the pair is never told apart by hue alone. */
@@ -688,7 +682,11 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 .pk.p1{background:var(--pick-1)}
 .pk.p2{background:var(--pick-2)}
 
-.clearpick{float:right;margin:-2px 0 8px 10px;background:var(--glass-strong);
+/* Not floated: the panel below it carries an entrance animation, and an
+   animated transform makes a stacking context that paints over the float
+   layer - which put an invisible panel on top of this button and swallowed
+   every click on it. In flow it cannot be covered. */
+.clearpick{display:block;margin:0 0 10px auto;background:var(--glass-strong);
  border:1px solid var(--panel-line);color:var(--panel-ink-2);border-radius:var(--r-m);
  padding:4px 11px;cursor:pointer;font:11.5px var(--sans);
  transition:background var(--fast) var(--ease),color var(--fast) var(--ease),

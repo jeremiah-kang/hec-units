@@ -252,8 +252,7 @@
 
   function exWorkHint() {
     return '<div class="cv-hint"><b>Pick a result</b>'
-         + 'to see exactly how it was worked out - every hop, the constant it '
-         + 'uses, and where that constant comes from.</div>';
+         + 'to see the math steps taken to complete the conversion.</div>';
   }
 
   /* What the file says for this hop, with its named constants resolved. */

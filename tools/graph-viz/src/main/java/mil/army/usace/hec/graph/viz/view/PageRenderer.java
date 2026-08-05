@@ -32,10 +32,7 @@ public final class PageRenderer {
           </head>
           <body>
             <div class="pagehead">
-              <div>
-                <h1>{{title2}}</h1>
-                <p class="lede">{{lede}}</p>
-              </div>
+              <h1>{{title2}}</h1>
               <div class="headbtns">
                 {{summaryButton}}
                 {{keysButton}}
@@ -150,14 +147,6 @@ public final class PageRenderer {
         return Html.fill(PAGE)
             .put("title", title)
             .put("title2", title)
-            .put("lede", tabbed
-                 ? "Coverage shows every conversion the algorithm can produce, one matrix per "
-                 + "dimension - each row converts into the columns. Conversion graphs show the "
-                 + "direct conversions those are all derived from - the ones written by hand, "
-                 + "one step each. Click any card to enlarge it."
-                 : "Every conversion the algorithm can produce, one matrix per dimension. "
-                 + "Each row converts into the columns. Click a card to enlarge it, then click "
-                 + "any cell for its equation and test results.")
             .raw("css", resource("/viz.css"))
             .raw("js", pageScript())
             .raw("cyto", tabbed ? resource("/cytoscape.min.js") : "")
