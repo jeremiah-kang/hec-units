@@ -44,9 +44,49 @@
   if (!overlay || !stage) {
     return;
   }
+  
+  var trapReturn = null;
+
+  function trapFocus(layer) {
+    trapReturn = document.activeElement;
+    layer.addEventListener('keydown', onTrapKey);
+    var first = layer.querySelector('button,[href],input,select,[tabindex]:not([tabindex="-1"])');
+    if (first) { first.focus(); }
+  }
+
+  function onTrapKey(event) {
+    if (event.key !== 'Tab') {
+      return;
+    }
+    var layer = event.currentTarget;
+    var focusable = Array.prototype.filter.call(
+      layer.querySelectorAll('button,[href],input,select,[tabindex]:not([tabindex="-1"])'),
+      function (el) { return el.offsetParent !== null; });
+    if (!focusable.length) {
+      return;
+    }
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function releaseFocus(layer) {
+    layer.removeEventListener('keydown', onTrapKey);
+    if (trapReturn && trapReturn.focus) { trapReturn.focus(); }
+    trapReturn = null;
+  }
 
   function raise(layer) {
     layer.classList.add('open');
+    layer.setAttribute('aria-hidden', 'false');
+    if (layer === overlay && typeof pnOnOpen === 'function') { pnOnOpen(); }
+    trapFocus(layer);
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
         layer.classList.add('in');
@@ -56,6 +96,8 @@
   }
 
   function lower(layer, after) {
+    layer.setAttribute('aria-hidden', 'true');
+    releaseFocus(layer);
     layer.classList.remove('in');
     var done = false;
     function finish() {
@@ -183,7 +225,7 @@
 
   // Right side panel
   function detailFor(cell) {
-    var html = cell.dataset.detail
+    var html = detailHtml(cell.dataset.from, cell.dataset.to)
             || '<div class="empty">' + cell.getAttribute('title') + '</div>';
 
     if (cell.dataset.from && cell.dataset.to && typeof SEED !== 'undefined') {
@@ -275,14 +317,17 @@
     }
 
     overlay.classList.remove('seedmode');
-    oaxis.textContent = 'row → column';
+    oaxis.textContent = 'row → column · arrow keys move · Enter pins';
     otally.innerHTML = card.querySelector('.tally').innerHTML;
+    var mount = card.querySelector('.mx');
+    if (mount) { buildMatrix(mount); }
     stage.innerHTML = card.querySelector('table').outerHTML;
 
     // The card's copy is scaled down to fit its thumbnail, and that inline
     // transform rides along in the clone. The enlarged view sizes itself with
     // fit() instead, so the scale has to come back off here.
     stage.querySelector('table').style.transform = '';
+    wireGridKeys(stage.querySelector('table'));
 
     var corner = stage.querySelector('th.corner');
     if (corner) {
@@ -338,5 +383,6 @@
     });
   }
 
+  watchMatrices();
   fitThumbs();
   window.addEventListener('resize', fitThumbs);

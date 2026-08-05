@@ -24,9 +24,14 @@
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   }
 
+  function fontStack(name, fallback) {
+    var value = token(name).replace(/['"]/g, '').trim();
+    return /^[\w\- ]+(?:\s*,\s*[\w\- ]+)*$/.test(value) ? value : fallback;
+  }
+
 // Setting up the Cytoscape style
   function cyStyle(enlarged) {
-    var mono = token('--mono') || 'monospace';
+    var mono = fontStack('--mono', 'monospace');
     function pillWidth(ele) { return 26 + 13 * String(ele.data('label')).length; }
     return [
       {selector: 'node', style: {
@@ -41,6 +46,7 @@
         'color': '#374151',
         'font-family': mono,
         'font-size': enlarged ? 17 : 14,
+        'font-weight': 'bold',
         'text-valign': 'center',
         'text-halign': 'center',
         'transition-property': 'opacity, border-width, border-color',
@@ -76,6 +82,40 @@
       // that could outrank .dim later.
       {selector: '.entering', style: {'opacity': 0}},
       {selector: 'edge.hot', style: {'line-color': token('--edge-pick'), 'width': 4}},
+
+      // The idle walk through the routes. It only lights the path up; dimming
+      // everything else once a second would be exhausting to sit next to.
+      //
+      // The halo is what makes it read as illuminated rather than merely
+      // recoloured: an overlay spreads past the stroke, so the line looks like
+      // it is casting light instead of just changing colour.
+      {selector: 'edge.cycle', style: {
+        'line-color': token('--glow'), 'width': 4.5, 'opacity': 1, 'z-index': 12,
+        'overlay-color': token('--glow'), 'overlay-opacity': 0.18,
+        'overlay-padding': 7,
+        'transition-property': 'line-color, width, overlay-opacity, overlay-padding',
+        'transition-duration': '0.4s',
+        'transition-timing-function': 'ease-out'}},
+
+      // Nodes between the two picks, so the light runs the whole way. The picks
+      // themselves keep their own colours - losing those would cost more than
+      // the glow gains.
+      {selector: 'node.cycle', style: {
+        'border-color': token('--glow'), 'border-width': 3.5,
+        'overlay-color': token('--glow'), 'overlay-opacity': 0.18,
+        'overlay-padding': 7,
+        'transition-property':
+          'border-color, border-width, overlay-opacity, overlay-padding',
+        'transition-duration': '0.4s',
+        'transition-timing-function': 'ease-out'}},
+
+      // The moment it comes on: a small surge that settles back, which is what
+      // a light switching on looks like. Kept close to the settled values - the
+      // point is to catch the eye once, not to jump at it.
+      {selector: 'edge.cycle.surge', style: {
+        'width': 5.4, 'overlay-opacity': 0.25, 'overlay-padding': 10}},
+      {selector: 'node.cycle.surge', style: {
+        'border-width': 4.2, 'overlay-opacity': 0.25, 'overlay-padding': 9}},
       {selector: 'edge.sel', style: {
         'line-color': token('--edge-pick'), 'width': 4.5, 'opacity': 1}},
       // Nothing but full opacity. The chevrons riding above are the highlight,
@@ -93,7 +133,7 @@
         'shape': 'ellipse', 'width': 26, 'height': 26,
         'border-color': '#0f172a', 'border-width': 2,
         'label': 'data(label)', 'color': '#0f172a',
-        'font-family': token('--sans') || 'sans-serif',
+        'font-family': fontStack('--sans', 'sans-serif'),
         'font-size': 15, 'font-weight': 700,
         'text-valign': 'center', 'text-halign': 'center',
         'events': 'no', 'z-index': 9}},
@@ -221,6 +261,10 @@
     var dragNode = null;
     var flow = null;                  // the route-flow animation frame
     var flowPath = null;              // the hops the arrows are running along
+    var cycle = null;                 // the idle walk through the routes
+    var cycleAt = 0;
+    var lead = null;                  // the pause before the first route lights
+    var surge = null;                 // the switching-on surge
     var flowHint = false;
     var flowInk = token('--accent-deep');
     var phase = 0;
@@ -318,6 +362,7 @@
     // remove highlight states
     function clearMarks() {
       stopFlow();
+      stopCycle();
       cy.elements().removeClass('dim sel on-route pick-a pick-b hot');
     }
 
@@ -414,6 +459,7 @@
         }), 'hint');
       }
       drawPanel();
+      startCycle();
     }
 
     function markPicks() {
@@ -505,6 +551,54 @@
     }
 
     // Present the right side panel results
+    function stepsOf(path) {
+      var m = 1;
+      var b = 0;
+      var steps = [];
+      for (var i = 0; i < path.length; i++) {
+        var edge = E[path[i].ei];
+        if (edge.m === null || isNaN(edge.m)) { return null; }
+        var em;
+        var eb;
+        var reversed = path[i].from !== edge.s;
+        if (!reversed) { em = edge.m; eb = edge.b; }
+        else {
+          if (edge.m === 0) { return null; }
+          em = 1 / edge.m; eb = -edge.b / edge.m;
+        }
+        m = em * m;
+        b = em * b + eb;
+        steps.push({from: N[path[i].from].id, to: N[path[i].to].id,
+                    m: em, b: eb, runM: m, runB: b, reversed: reversed});
+      }
+      return steps;
+    }
+
+    function stepsHtml(path) {
+      var steps = stepsOf(path);
+      if (!steps) {
+        return '';
+      }
+      return '<div class="steps"><div class="steps-lbl">every constant this '
+        + 'route multiplies in</div>'
+        + steps.map(function (step, i) {
+            return '<div class="step">'
+              + '<span class="step-n">' + (i + 1) + '</span>'
+              + '<span class="step-pair"><span class="u">' + sup(escText(step.from))
+              + '</span>' + ARROW + '<span class="u">' + sup(escText(step.to))
+              + '</span></span>'
+              + '<span class="step-calc">'
+              + '<span class="step-op">× ' + num(step.m)
+              + (step.b !== 0 ? (step.b >= 0 ? ' + ' : ' − ') + num(Math.abs(step.b)) : '')
+              + (step.reversed ? '<em title="stored the other way round and '
+                 + 'inverted here">inv</em>' : '')
+              + '</span>'
+              + '<span class="step-run">= ' + num(step.runM) + '</span>'
+              + '</span></div>';
+          }).join('')
+        + '</div>';
+    }
+
     function factorHtml(result, A, B) {
       if (!result) { return 'not a simple scale + offset - cannot compose numerically'; }
       var out = '<span class="u">' + sup(escText(B)) + '</span> = <span class="u">'
@@ -586,7 +680,11 @@
              + '<div class="top"><span class="hops">' + p.length + ' hop'
              + (p.length === 1 ? '' : 's') + '</span>'
              + '<span class="route">' + dot + chain + '</span></div>'
-             + '<div class="res">' + factorHtml(r, A, B) + '</div></div>';
+             + '<div class="res">' + factorHtml(r, A, B) + '</div>'
+             + budgetHtml(r, results[0])
+             + '<button type="button" class="explain" aria-expanded="false">'
+             + 'explain this number</button>'
+             + '<div class="steps-wrap" hidden>' + stepsHtml(p) + '</div></div>';
       }).join('');
 
       panelShow(head + rows, true);
@@ -594,6 +692,16 @@
       // running while the mouse goes elsewhere. Rebuilt with the panel, so a
       // fresh pair of picks starts unpinned.
       var held = null;
+      odetail.querySelectorAll('.explain').forEach(function (button) {
+        button.addEventListener('click', function (event) {
+          event.stopPropagation();          // not a route pick
+          var wrap = button.nextElementSibling;
+          wrap.hidden = !wrap.hidden;
+          button.setAttribute('aria-expanded', String(!wrap.hidden));
+          button.textContent = wrap.hidden ? 'explain this number' : 'hide the steps';
+        });
+      });
+
       odetail.querySelectorAll('.prow').forEach(function (row) {
         var index = +row.dataset.i;
         row.addEventListener('mouseenter', function () {
@@ -603,6 +711,7 @@
           if (held === null) {
             clearMarks();
             markPicks();
+            startCycle();             // back to idle
           }
         });
         row.addEventListener('click', function () {
@@ -611,7 +720,10 @@
           });
           held = held === index ? null : index;
           row.classList.toggle('held', held === index);
-          showRoute(paths[index]);      // the cursor is still here either way
+          // The cursor is still on the row either way, so this stays a hover:
+          // the idle walk resumes from mouseleave, not from here, or its
+          // highlight would run on top of the arrows this just started.
+          showRoute(paths[index]);
         });
       });
     }
@@ -767,6 +879,84 @@
       flowCtx.clearRect(0, 0, host.clientWidth, host.clientHeight);
     }
 
+    function budgetHtml(result, best) {
+        if (!best || !isFinite(result.m) || !isFinite(best.m) || best.m === 0) {
+            return '';
+        }
+        var off = Math.abs(result.m - best.m) / Math.abs(best.m);
+        if (off < 1e-12) {
+            return '<div class="budget agrees">agrees with the shortest route</div>';
+        }
+        var tone = off > 1e-6 ? 'bad' : 'warn';
+        return '<div class="budget ' + tone + '">differs from the shortest route by '
+             + '<b>' + (off * 100).toPrecision(3) + '%</b>'
+             + (tone === 'bad' ? ' - one of them uses a wrong or rounded constant' : '')
+             + '</div>';
+    }
+
+    var CYCLE_MS = 1500;              // how long each route stays lit
+    var CYCLE_LEAD = 500;             // a beat before the first one comes on
+    var CYCLE_SURGE = 180;            // how long the switching-on surge lasts
+
+    function litPath(p) {
+      var onEdge = {};
+      var onNode = {};
+      p.forEach(function (h) {
+        onEdge[h.ei] = true;
+        onNode[h.to] = true;
+      });
+      delete onNode[pickB];           // the picks keep their own colours
+
+      cy.batch(function () {
+        E.forEach(function (edge, j) { edge.ele.toggleClass('cycle', !!onEdge[j]); });
+        N.forEach(function (node, j) { node.ele.toggleClass('cycle', !!onNode[j]); });
+        cy.elements('.cycle').addClass('surge');
+      });
+
+      // Let the surge paint, then drop it: the transition carries it back down
+      // and the path settles at its lit size.
+      if (surge) { clearTimeout(surge); }
+      surge = setTimeout(function () {
+        surge = null;
+        cy.batch(function () { cy.elements('.surge').removeClass('surge'); });
+      }, CYCLE_SURGE);
+
+      odetail.querySelectorAll('.prow').forEach(function (row) {
+        row.classList.toggle('lit', +row.dataset.i === cycleAt);
+      });
+    }
+
+    function startCycle() {
+      stopCycle();
+      if (!paths.length || pickA === null || pickB === null) {
+        return;
+      }
+      cycleAt = 0;
+      // Picking two units should not become motion in the same instant - the
+      // pause leaves a moment to take in what was picked.
+      lead = setTimeout(function () {
+        lead = null;
+        litPath(paths[0]);
+        if (paths.length === 1) {
+          return;                     // nothing to cycle to
+        }
+        cycle = setInterval(function () {
+          cycleAt = (cycleAt + 1) % paths.length;
+          litPath(paths[cycleAt]);
+        }, CYCLE_MS);
+      }, CYCLE_LEAD);
+    }
+
+    function stopCycle() {
+      if (lead) { clearTimeout(lead); lead = null; }
+      if (surge) { clearTimeout(surge); surge = null; }
+      if (cycle) { clearInterval(cycle); cycle = null; }
+      cy.elements().removeClass('cycle surge');
+      odetail.querySelectorAll('.prow.lit').forEach(function (row) {
+        row.classList.remove('lit');
+      });
+    }
+
     function showRoute(p) {
       clearMarks();
       var onE = {};
@@ -898,6 +1088,10 @@
     return {
       busy: busy,
       reset: reset,
+      resize: function () {
+        cy.resize();
+        if (typeof sizeFlow === 'function') { sizeFlow(); }
+      },
       restyle: function () {
         flowInk = token('--accent-deep');
         cy.style(cyStyle(true)).update();
@@ -912,6 +1106,7 @@
       },
       destroy: function () {
         stopFlow();
+        stopCycle();
         if (sim) { cancelAnimationFrame(sim); sim = null; }
         if (resetButton) { resetButton.onclick = null; }
         odetail.removeEventListener('click', onPanelClick);

@@ -67,6 +67,9 @@ final class SearchIndex {
              + ",\"s\":" + Json.str(status(edge.status()))
              + ",\"h\":" + (edge.label() == null ? "null" : edge.label())
              + ",\"k\":" + Json.str(kind)
+             // The pair's detail, which used to ride on every matrix cell as
+             // escaped markup. The page builds the panel around it on demand.
+             + (edge.detail() == null ? "" : ",\"x\":" + edge.detail())
              + "}";
     }
 

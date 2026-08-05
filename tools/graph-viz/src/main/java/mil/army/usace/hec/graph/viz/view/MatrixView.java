@@ -24,19 +24,8 @@ public final class MatrixView {
         <div class="card" style="--i:{{index}}" data-name="{{group}}" data-find="{{find}}"
          data-failed="{{failed}}" data-untested="{{untested}}">
           <header><h2>{{group}}</h2><span class="meta">{{units}} units</span>{{tally}}</header>
-          <div class="thumb scroll">
-            <table class="matrix">
-              <thead><tr><th class="corner"></th>{{columns}}</tr></thead>
-              <tbody>
-                {{rows}}
-              </tbody>
-            </table>
-          </div>
+          <div class="thumb scroll"><div class="mx" data-group="{{group}}"></div></div>
         </div>
-        """;
-
-    private static final String ROW = """
-        <tr><th>{{unit}}</th>{{cells}}</tr>
         """;
 
     private MatrixView() {
@@ -74,43 +63,7 @@ public final class MatrixView {
             .put("failed", counts.getOrDefault("failed", 0))
             .put("untested", counts.getOrDefault("untested", 0))
             .raw("tally", tally(members, graph))
-            .raw("columns", Html.each(members,
-                 to -> Html.tag("th").html(Labels.html(to.id())).toString()))
-            .raw("rows", Html.each(members, from -> row(from, members, graph)))
             .render();
-    }
-
-    private static String row(Node from, List<Node> members, Graph graph) {
-        return Html.fill(ROW)
-            .raw("unit", Labels.html(from.id()))
-            .raw("cells", Html.each(members, to -> cell(from, to, graph)))
-            .render();
-    }
-
-    private static String cell(Node from, Node to, Graph graph) {
-        if (from.id().equals(to.id())) {
-            return "<td class=\"self\"></td>";
-        }
-        Optional<Edge> edge = graph.edge(from.id(), to.id());
-        String state = stateOf(edge);
-
-        return Html.tag("td")
-            .attr("class", state)
-            .attr("title", Labels.plain(from.id()) + " → " + Labels.plain(to.id()) + ": " + state)
-            .attr("data-from", from.id())
-            .attr("data-to", to.id())
-            // The edge carries its own description, so the enlarged view needs no
-            // second copy of the graph data.
-            .attr("data-detail", edge.map(Edge::detail).orElse(null))
-            .html(label(edge))
-            .toString();
-    }
-
-    /** Hidden by CSS at thumbnail size, where a 22px square cannot hold a digit. */
-    private static String label(Optional<Edge> edge) {
-        return edge.map(Edge::label)
-            .map(text -> Html.tag("span").attr("class", "lab").text(text).toString())
-            .orElse("");
     }
 
     /** Package-visible so Stats classifies cells exactly as the matrix draws them. */

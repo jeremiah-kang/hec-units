@@ -38,6 +38,7 @@ public final class PageRenderer {
               </div>
               <div class="headbtns">
                 {{summaryButton}}
+                {{keysButton}}
                 {{themeButton}}
               </div>
             </div>
@@ -49,6 +50,7 @@ public final class PageRenderer {
             </div>
             {{seedpane}}
             {{findpane}}
+            {{convertpane}}
             {{overlay}}
             {{summary}}
             {{data}}
@@ -60,6 +62,18 @@ public final class PageRenderer {
             </script>
           </body>
         </html>
+        """;
+
+    private static final String KEYS_BUTTON = """
+        <button id="keysopen" type="button" title="Keyboard shortcuts and tips"
+                aria-label="Keyboard shortcuts">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="2.2" y="6" width="19.6" height="12" rx="2.4"/>
+            <path d="M6 9.6h.01M9.4 9.6h.01M12.8 9.6h.01M16.2 9.6h.01M18 12.8h.01
+                     M6 12.8h.01M8.6 15.6h6.8"/>
+          </svg>
+          <span>Keys</span>
+        </button>
         """;
 
     // Both icons ship; CSS shows whichever one names the theme you would get.
@@ -78,7 +92,8 @@ public final class PageRenderer {
         """;
 
     private static final String OVERLAY = """
-        <div id="overlay">
+        <div id="overlay" role="dialog" aria-modal="true" aria-labelledby="otitle"
+             aria-hidden="true">
           <div id="obar">
             <h3 id="otitle"></h3>
             <span id="oaxis">row → column</span>
@@ -96,13 +111,21 @@ public final class PageRenderer {
           {{seedkey}}
           <div id="ostagewrap">
             <div id="ostage"></div>
-            <aside id="opanel"><div id="odetail"></div></aside>
+            <div id="osplit" role="separator" aria-orientation="vertical" tabindex="0"
+                 aria-label="Resize the detail panel"
+                 title="Drag to resize, double-click to reset"></div>
+            <aside id="opanel">
+              <button type="button" id="opanelfold" title="Hide the panel"
+                      aria-label="Hide the panel" aria-expanded="true">&rsaquo;</button>
+              <div id="odetail" aria-live="polite"></div>
+            </aside>
           </div>
         </div>
         """;
 
     private static final String SUMMARY = """
-        <div id="summary">
+        <div id="summary" role="dialog" aria-modal="true" aria-label="Test suite summary"
+             aria-hidden="true">
           <div id="sbar"><h3>Test suite summary</h3><button id="sclose" type="button">Close</button></div>
           <div id="sbody">{{content}}</div>
         </div>
@@ -135,6 +158,7 @@ public final class PageRenderer {
             .raw("css", resource("/viz.css"))
             .raw("js", pageScript())
             .raw("cyto", tabbed ? resource("/cytoscape.min.js") : "")
+            .raw("keysButton", tabbed ? KEYS_BUTTON : "")
             .raw("themeButton", THEME_BUTTON)
             .raw("summaryButton", stats == null ? ""
                  : "<button id=\"sumopen\" type=\"button\">Summary</button>")
@@ -158,6 +182,7 @@ public final class PageRenderer {
                        .raw("body", seedBody).render()
                  : "")
             .raw("findpane", tabbed ? SearchView.tab() : "")
+            .raw("convertpane", tabbed ? CONVERTPANE : "")
             .raw("overlay", Html.fill(OVERLAY)
                  .raw("legend", legend("legend olegend mkey", null))
                  .raw("seedkey", tabbed ? seedKey() : "")
@@ -170,9 +195,36 @@ public final class PageRenderer {
     private static final String TABBAR = """
         <div class="tabs" role="tablist">
           <button class="tab active" data-pane="tab-coverage" type="button">Coverage</button>
-          <button class="tab" data-pane="tab-seed" type="button">Conversion graphs</button>
+          <button class="tab" data-pane="tab-seed" type="button">Conversion Graphs</button>
           <button class="tab" data-pane="tab-find" type="button">Search</button>
+          <button class="tab" data-pane="tab-convert" type="button">Converter</button>
           <span class="tabink"></span>
+        </div>
+        """;
+
+    private static final String CONVERTPANE = """
+        <div class="tabpane" id="tab-convert">
+          <div class="cv">
+            <div class="cv-in">
+              <label class="ed-lbl" for="cvvalue">value</label>
+              <input id="cvvalue" type="text" inputmode="decimal" value="1"
+                     autocomplete="off" aria-label="Value to convert">
+              <label class="ed-lbl" for="cvunit">unit</label>
+              <div class="cv-combo">
+                <input id="cvunit" type="text" placeholder="ft" autocomplete="off"
+                       role="combobox" aria-expanded="false" aria-controls="cvlist"
+                       aria-label="Unit to convert from">
+                <button id="cvpick" type="button" tabindex="-1"
+                        aria-label="Show every unit">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 9.5 12 15.5 18 9.5"/>
+                  </svg>
+                </button>
+                <div id="cvlist" role="listbox" hidden></div>
+              </div>
+            </div>
+            <div id="cvout" class="cv-out" aria-live="polite"></div>
+          </div>
         </div>
         """;
 
@@ -274,12 +326,15 @@ public final class PageRenderer {
     }
 
     private static final List<String> SCRIPTS = List.of(
+        "/viz/matrix.js",         // builds the coverage matrices and their detail panels
         "/viz/overlay.js",        // the enlarge overlay: open, close, detail panel
+        "/viz/panel.js",          // the detail panel: dock, resize, collapse
         "/viz/tables.js",         // click-to-sort table headers
         "/viz/graph.js",          // conversion-graph explorer (cytoscape + physics)
         "/viz/chrome.js",         // tab bar and summary modal
         "/viz/matrix-cells.js",   // hover and pin for enlarged matrix cells
-        "/viz/search.js");        // search tab, grid filters, in-matrix highlight
+        "/viz/search.js",         // search tab, grid filters, in-matrix highlight
+        "/viz/extras.js");        // converter, suggestions, links, keyboard
 
     private static String pageScript() throws IOException {
         var script = new StringBuilder("(function () {\n");

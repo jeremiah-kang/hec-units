@@ -46,6 +46,7 @@ public final class SummaryView {
           </div>
           {{dimtoggle}}
           {{routes}}
+          <div id="sumextra"></div>
           <h4>Worth a look</h4>
           <div class="sum-cards">
             {{cards}}
@@ -72,7 +73,8 @@ public final class SummaryView {
         <td class="n">{{reachable}}</td><td class="n {{oktone}}">{{passed}}</td>
         <td class="n {{failtone}}">{{failed}}</td><td class="n">{{untested}}</td>
         <td class="p">{{coverage}}</td>
-        <td class="barcell"><span class="bar passed" style="width:{{width}}%"></span></td></tr>
+        <td class="barcell"><span class="bar {{tone}}" style="width:{{width}}%"></span>
+        <span class="target" title="80% target"></span></td></tr>
         """;
 
     private static final String ROUTES = """
@@ -131,6 +133,19 @@ public final class SummaryView {
 
     /** How many rows of a long table are worth showing before folding. */
     private static final int VISIBLE_DIMENSIONS = 8;
+
+    private static String coverageTone(Stats.Group group) {
+        if (group.failed() > 0) {
+            return "failed";
+        }
+        if (group.reachable() == 0) {
+            return "untested";
+        }
+        if (group.coverage() >= 80) {
+            return "passed";
+        }
+        return group.coverage() >= 40 ? "warn" : "low";
+    }
 
     private static String dimensionRows(Stats stats) {
         var rows = new StringBuilder();
@@ -232,14 +247,6 @@ public final class SummaryView {
         </div>
         """;
 
-    /**
-     * What the donut cannot say on its own.
-     *
-     * The circle is dominated by pairs that have no conversion at all, and the
-     * table below it is alphabetical, so neither answers "where would testing
-     * do the most good". These are the dimensions holding the largest gaps,
-     * ranked, which is the one ordering nothing else on the page provides.
-     */
     private static String donutKey(Stats stats) {
         var gaps = stats.groups().stream()
             .filter(group -> group.untested() > 0)
@@ -319,6 +326,7 @@ public final class SummaryView {
             .put("untested", group.untested())
             .put("coverage", Stats.percent(group.coverage()))
             .put("width", round(group.coverage()))
+            .put("tone", coverageTone(group))
             .render();
     }
 

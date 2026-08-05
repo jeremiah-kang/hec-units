@@ -490,11 +490,7 @@
      derived form, the graph edge holds the conversion as authored. */
   function renderedDetail(from, to) {
     var out = '';
-    var cell = document.querySelector('#tab-coverage td[data-from="' + cssValue(from)
-             + '"][data-to="' + cssValue(to) + '"]');
-    if (cell && cell.dataset.detail) {
-      out += cell.dataset.detail;
-    }
+    out += detailHtml(from, to);
     var edge = document.querySelector('#tab-seed path[data-a="' + cssValue(from)
              + '"][data-b="' + cssValue(to) + '"]')
             || document.querySelector('#tab-seed path[data-a="' + cssValue(to)
