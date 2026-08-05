@@ -907,6 +907,8 @@
         pickA = indexOf[fromId];
         pickB = indexOf[toId];
         refreshPicks();
+        var shortest = odetail.querySelector('.prow');
+        if (shortest) { shortest.click(); }
       },
       destroy: function () {
         stopFlow();
