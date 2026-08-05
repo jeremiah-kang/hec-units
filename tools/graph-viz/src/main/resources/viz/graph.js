@@ -399,33 +399,35 @@
       E.forEach(function (edge, j) { edge.ele.toggleClass('dim', edge.s !== i && edge.t !== i); });
     }
 
-    /*
-     * A ring that expands away from the node and fades out.
-     *
-     * This used to thicken the border instead, which meant it borrowed whatever
-     * colour the border happened to be. Releasing a pick removes the green or
-     * amber first, so the expanding border came out in the node's plain grey -
-     * the wrong colour, at the one moment the gesture most needs to read. An
-     * overlay owns its own colour, so it cannot be dragged around by state.
-     */
-    function pulseNode(ele, colour) {
+    var pulseSeq = {};
+
+    function pulse(ele, colour, reach) {
+      var id = ele.id();
+      var mine = (pulseSeq[id] || 0) + 1;
+      pulseSeq[id] = mine;
+
+      ele.stop();
+      ele.clearQueue();
       ele.style({'overlay-color': colour, 'overlay-padding': 2,
                  'overlay-opacity': 0.42, 'overlay-corner-radius': 999});
-      ele.animate({style: {'overlay-padding': 24, 'overlay-opacity': 0}},
+      ele.animate({style: {'overlay-padding': reach, 'overlay-opacity': 0}},
                   {duration: 430, easing: 'ease-out', complete: function () {
+                     if (pulseSeq[id] !== mine) {
+                       return;            // a newer ring owns this element now
+                     }
                      ele.removeStyle('overlay-color overlay-padding overlay-opacity '
                                      + 'overlay-corner-radius');
                    }});
     }
 
+    function pulseNode(ele, colour) {
+      pulse(ele, colour, 24);
+    }
+
     /* A ring that expands off the edge and fades, so a click lands somewhere
        visible even when the edge was already the highlighted one. */
     function pulseEdge(ele) {
-      ele.style({'overlay-color': token('--edge-pick'),
-                 'overlay-padding': 1, 'overlay-opacity': 0.4});
-      ele.animate({style: {'overlay-padding': 20, 'overlay-opacity': 0}},
-                  {duration: 420, easing: 'ease-out',
-                   complete: function () { ele.removeStyle(); }});
+      pulse(ele, token('--edge-pick'), 20);
     }
 
     function selectEdge(j) {

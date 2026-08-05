@@ -753,13 +753,17 @@
                           + ' .legend [data-kind]').forEach(function (key) {
     key.classList.add('clickable');
     key.addEventListener('click', function () {
+
+      var inOverlay = !!key.closest('#overlay');
+      var dim = inOverlay && otitle ? otitle.textContent.trim() : '';
+
       if (overlay && overlay.classList.contains('open')) { close(); }
       if (key.dataset.system) {
-        openFind({mode: 'unit', system: key.dataset.system});
+        openFind({mode: 'unit', system: key.dataset.system, dim: dim});
       } else if (key.dataset.kind) {
-        openFind({kind: key.dataset.kind});
+        openFind({kind: key.dataset.kind, dim: dim});
       } else {
-        openFind({status: key.dataset.status});
+        openFind({status: key.dataset.status, dim: dim});
       }
     });
   });
