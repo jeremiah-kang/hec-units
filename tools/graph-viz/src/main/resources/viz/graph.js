@@ -2,6 +2,28 @@
 
 // Setup
   var seedApi = null;
+
+  /* Whether the idle walk through the routes runs. Kept out here so it holds
+     across graphs, and remembered so it holds across visits. */
+  var cycleOn = true;
+  try {
+    cycleOn = localStorage.getItem('viz-cycle') !== 'off';
+  } catch (e) { }
+
+  var cycleButton = document.getElementById('ocycle');
+  if (cycleButton) {
+    cycleButton.classList.toggle('off', !cycleOn);
+    cycleButton.setAttribute('aria-pressed', String(cycleOn));
+    cycleButton.addEventListener('click', function () {
+      cycleOn = !cycleOn;
+      try {
+        localStorage.setItem('viz-cycle', cycleOn ? 'on' : 'off');
+      } catch (e) { }
+      cycleButton.classList.toggle('off', !cycleOn);
+      cycleButton.setAttribute('aria-pressed', String(cycleOn));
+      if (seedApi && seedApi.idle) { seedApi.idle(cycleOn); }
+    });
+  }
   var hasGraphs = typeof GRAPHS !== 'undefined';
 
   var SEED_HINT = '<div class="empty"><b>Click two units</b> to list every route between '
@@ -88,7 +110,7 @@
       //
       // The halo is what makes it read as illuminated rather than merely
       // recoloured: an overlay spreads past the stroke, so the line looks like
-      // it is casting light instead of just changing colour.
+      // it is casting light instead of just changing color.
       {selector: 'edge.cycle', style: {
         'line-color': token('--glow'), 'width': 4.5, 'opacity': 1, 'z-index': 12,
         'overlay-color': token('--glow'), 'overlay-opacity': 0.18,
@@ -98,12 +120,12 @@
         'transition-timing-function': 'ease-out'}},
 
       // Nodes between the two picks, so the light runs the whole way. The picks
-      // themselves keep their own colours - losing those would cost more than
+      // themselves keep their own colors - losing those would cost more than
       // the glow gains.
       {selector: 'node.cycle', style: {
         'border-color': token('--glow'), 'border-width': 3.5,
         'overlay-color': token('--glow'), 'overlay-opacity': 0.18,
-        'overlay-padding': 7,
+        'overlay-padding': 7, 'overlay-corner-radius': 999,
         'transition-property':
           'border-color, border-width, overlay-opacity, overlay-padding',
         'transition-duration': '0.4s',
@@ -132,13 +154,18 @@
         'events': 'no', 'z-index': 9}},
       {selector: 'node.bdg.p1', style: {'background-color': token('--pick-1')}},
       {selector: 'node.bdg.p2', style: {'background-color': token('--pick-2')}},
+      /* Overlays default to an 8px corner radius (Math.min(w/4,h/4,8)), which
+         next to a 46px pill reads as a box around an oval. An explicit radius
+         is clamped to min(radius, w/2, h/2), so asking for far too much gives
+         a pill at whatever size the overlay currently is - including part way
+         through the click ring, where the padding is still growing. */
       {selector: 'node.hover', style: {
         'border-width': 3.5,
         'overlay-color': token('--accent-deep'),
-        'overlay-opacity': 0.16, 'overlay-padding': 7}},
+        'overlay-opacity': 0.16, 'overlay-padding': 7,
+        'overlay-corner-radius': 999}},
       {selector: 'node.preview', style: {
-        'border-color': token('--pick-2'), 'border-width': 3.5}},
-      {selector: 'node.pop', style: {'border-width': 9}}
+        'border-color': token('--pick-2'), 'border-width': 3.5}}
     ];
   }
   var PRESET = {name: 'preset', fit: false, animate: false};
@@ -170,7 +197,7 @@
     requestAnimationFrame(function () { host.classList.add('ready'); });
   }
 
-  /* Only the open graph needs re-styling. Thumbnails draw with fixed colours,
+  /* Only the open graph needs re-styling. Thumbnails draw with fixed colors,
      so they look the same in both themes and re-baking them is wasted work. */
   function restyleGraphs() {
     if (seedApi) { seedApi.restyle(); }
@@ -359,7 +386,7 @@
     }
 
     // Dims other nodes and edges when hovering over a different node
-    function neighbourhood(i) {
+    function neighborhood(i) {
       clearMarks();
       if (i === null) { return; }
       var near = {};
@@ -370,6 +397,25 @@
       });
       N.forEach(function (node, j) { node.ele.toggleClass('dim', !near[j]); });
       E.forEach(function (edge, j) { edge.ele.toggleClass('dim', edge.s !== i && edge.t !== i); });
+    }
+
+    /*
+     * A ring that expands away from the node and fades out.
+     *
+     * This used to thicken the border instead, which meant it borrowed whatever
+     * colour the border happened to be. Releasing a pick removes the green or
+     * amber first, so the expanding border came out in the node's plain grey -
+     * the wrong colour, at the one moment the gesture most needs to read. An
+     * overlay owns its own colour, so it cannot be dragged around by state.
+     */
+    function pulseNode(ele, colour) {
+      ele.style({'overlay-color': colour, 'overlay-padding': 2,
+                 'overlay-opacity': 0.42, 'overlay-corner-radius': 999});
+      ele.animate({style: {'overlay-padding': 24, 'overlay-opacity': 0}},
+                  {duration: 430, easing: 'ease-out', complete: function () {
+                     ele.removeStyle('overlay-color overlay-padding overlay-opacity '
+                                     + 'overlay-corner-radius');
+                   }});
     }
 
     /* A ring that expands off the edge and fades, so a click lands somewhere
@@ -420,6 +466,7 @@
     // Node toggling for selecting nodes and choosing paths
     function nodeClicked(i) {
       selEdge = null;
+      var was = i === pickA ? 1 : i === pickB ? 2 : 0;
       if (pickA === i) {
         pickA = pickB;                    // promote B so the survivor stays picked
         pickB = null;
@@ -434,7 +481,10 @@
         pickB = null;
       }
       alpha = Math.min(alpha, 0.12);
-      N[i].ele.flashClass('pop', 430);
+      // Releasing a pick keeps the colour it is giving up, so the ring always
+      // says which of the two slots the click was about.
+      var now = i === pickA ? 1 : i === pickB ? 2 : 0;
+      pulseNode(N[i].ele, token((now || was) === 2 ? '--pick-2' : '--pick-1'));
       refreshPicks();
     }
 
@@ -651,7 +701,7 @@
 
       if (order.length > 1) {
         head += '<div class="pth-warn"><b>These routes disagree.</b> ' + order.length
-              + ' different results across ' + paths.length + ' routes - the colour dot marks '
+              + ' different results across ' + paths.length + ' routes - the color dot marks '
               + 'each group. One or more direct conversions on the odd routes out is lossy '
               + 'or wrong.</div>';
       } else {
@@ -721,7 +771,7 @@
     }
 
     /*
-     * Arrows travelling along the route, from the first pick toward the second.
+     * Arrows traveling along the route, from the first pick toward the second.
      *
      * They are drawn on a canvas of our own rather than by cytoscape, which can
      * only put an arrowhead at the start, middle or end of an edge and can only
@@ -743,7 +793,7 @@
               c: {x: 2 * mid.x - (a.x + b.x) / 2, y: 2 * mid.y - (a.y + b.y) / 2}};
     }
 
-    // Flatten a hop into a polyline plus the distance travelled to each point,
+    // Flatten a hop into a polyline plus the distance traveled to each point,
     // so arrows can be spaced evenly by length rather than by parameter.
     function polyOf(hop) {
       var curve = curveOf(hop);
@@ -834,7 +884,7 @@
       flowCtx.globalAlpha = 1;
     }
 
-    function ring(index, colour, zoom, pan) {
+    function ring(index, color, zoom, pan) {
       if (index === null || !N[index]) { return; }
       var node = N[index].ele;
       var beat = (Math.sin(phase / 16) + 1) / 2;            // 0..1, slow
@@ -842,7 +892,7 @@
       flowCtx.beginPath();
       flowCtx.arc(node.position('x') * zoom + pan.x, node.position('y') * zoom + pan.y,
                   radius, 0, Math.PI * 2);
-      flowCtx.strokeStyle = colour;
+      flowCtx.strokeStyle = color;
       flowCtx.lineWidth = 2 * zoom;
       flowCtx.globalAlpha = 0.5 - beat * 0.32;
       flowCtx.stroke();
@@ -886,7 +936,7 @@
              + '</div>';
     }
 
-    var CYCLE_MS = 1500;              // how long each route stays lit
+    var CYCLE_MS = 2000;              // how long each route stays lit
     var CYCLE_LEAD = 500;             // a beat before the first one comes on
 
     function litPath(p) {
@@ -896,7 +946,7 @@
         onEdge[h.ei] = true;
         onNode[h.to] = true;
       });
-      delete onNode[pickB];           // the picks keep their own colours
+      delete onNode[pickB];           // the picks keep their own colors
 
       cy.batch(function () {
         E.forEach(function (edge, j) { edge.ele.toggleClass('cycle', !!onEdge[j]); });
@@ -910,7 +960,7 @@
 
     function startCycle() {
       stopCycle();
-      if (!paths.length || pickA === null || pickB === null) {
+      if (!cycleOn || !paths.length || pickA === null || pickB === null) {
         return;
       }
       cycleAt = 0;
@@ -996,7 +1046,7 @@
       if (sim && alpha > 0.06) {
         return;
       }
-      neighbourhood(i);
+      neighborhood(i);
       panelShow('<div class="fx"><div class="fx-head"><span class="u">'
         + sup(escText(N[i].id)) + '</span></div><div class="fx-names">'
         + escText(N[i].name || '') + '</div></div>', false);
@@ -1069,6 +1119,9 @@
     return {
       busy: busy,
       reset: reset,
+      idle: function (on) {
+        if (on) { startCycle(); } else { stopCycle(); }
+      },
       resize: function () {
         cy.resize();
         if (typeof sizeFlow === 'function') { sizeFlow(); }

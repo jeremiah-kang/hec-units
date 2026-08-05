@@ -104,6 +104,9 @@ public final class PageRenderer {
               <input type="search" placeholder="highlight a unit">
               <button type="button" class="clearfind" aria-label="clear">&times;</button>
             </label>
+            <button id="ocycle" type="button" aria-pressed="true"
+                    title="Cycle through the routes while two units are picked">
+              Route cycling</button>
             <button id="oreset" type="button">Reset view</button>
             <button id="oclose" type="button">Close</button>
           </div>
@@ -223,7 +226,10 @@ public final class PageRenderer {
                 <div id="cvlist" role="listbox" hidden></div>
               </div>
             </div>
-            <div id="cvout" class="cv-out" aria-live="polite"></div>
+            <div class="cv-body">
+              <div id="cvout" class="cv-out" aria-live="polite"></div>
+              <aside id="cvwork" class="cv-side"></aside>
+            </div>
           </div>
         </div>
         """;

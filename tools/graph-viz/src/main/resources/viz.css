@@ -30,9 +30,10 @@
   --pick-1:#34d399; --pick-2:#fbbf24; --edge-pick:#f59e0b;
   --warn:#fbbf24;
   /* the idle route walk. Brighter than --warn so it reads as a lamp coming
-     on rather than a caution colour; deeper on a light stage, where a pale
+     on rather than a caution color; deeper on a light stage, where a pale
      yellow would disappear into the background. */
-  --glow:#92400e;
+  /* the idle route walk; the same neon yellow in both themes */
+  --glow:#faff00;
 
   /* shape + depth */
   --r-s:4px; --r-m:8px; --r-l:12px; --r-pill:99px;
@@ -80,13 +81,13 @@ button{font:inherit}
 #sumopen:hover{border-color:#cbd5e1;color:var(--ink)}
 #sumopen:active{transform:scale(.97)}
 
-#oclose,#sclose,#oreset,.pathbtn{background:var(--glass-strong);border:1px solid var(--panel-line);
+#oclose,#sclose,#oreset,#ocycle,.pathbtn{background:var(--glass-strong);border:1px solid var(--panel-line);
  color:var(--panel-ink-2);border-radius:var(--r-m);padding:6px 14px;cursor:pointer;
  font:12px var(--sans);
  transition:background var(--fast) var(--ease),color var(--fast) var(--ease),
    transform var(--fast) var(--ease)}
-#oclose:hover,#sclose:hover,#oreset:hover,.pathbtn:hover{background:var(--glass-strong);color:var(--panel-ink)}
-#oclose:active,#sclose:active,#oreset:active,.pathbtn:active{transform:scale(.97)}
+#oclose:hover,#sclose:hover,#oreset:hover,#ocycle:hover,.pathbtn:hover{background:var(--glass-strong);color:var(--panel-ink)}
+#oclose:active,#sclose:active,#oreset:active,#ocycle:active,.pathbtn:active{transform:scale(.97)}
 
 #sumopen:focus-visible,#oclose:focus-visible,#sclose:focus-visible,#oreset:focus-visible,.pathbtn:focus-visible,
 .card:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
@@ -278,14 +279,14 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 
 /* Direction is the point of every one of these panels, so the arrow is sized
    and colored to be read, not inferred. */
-/* inline-flex centres the glyph on the line box instead of hanging it off the
+/* inline-flex centers the glyph on the line box instead of hanging it off the
    text baseline, which is what made it sit low next to larger unit names. */
-/* A fixed square box with the glyph centred in it, so placement comes from the
+/* A fixed square box with the glyph centered in it, so placement comes from the
    box and not from where a given font happens to hang U+2192 on the baseline.
    line-height:0 collapsed that box, which is what left it sitting low. */
 /* Drawn rather than typed. A font glyph sits wherever that font hangs U+2192
    on the baseline, which is why it kept reading low next to larger text; a
-   masked SVG is centred on its own box by construction. The mask takes its
+   masked SVG is centered on its own box by construction. The mask takes its
    color from background-color, so it still follows the palette. */
 .arrow{display:inline-block;width:1.15em;height:1.15em;vertical-align:middle;
  margin:0 9px;flex:none;font-size:1.25em;
@@ -492,7 +493,7 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
    The triangle sits with the label - inline, space always reserved, so nothing
    shifts on click. nowrap + the negative vertical margins matter: without them
    the triangle overflows a narrow column, wraps to its own line, and that
-   two-line cell rides up against its single-line neighbours. */
+   two-line cell rides up against its single-line neighbors. */
 .sum-table.sortable thead th.sortable-col{cursor:pointer;user-select:none;
  white-space:nowrap;transition:color var(--fast) var(--ease)}
 .sum-table.sortable thead th.sortable-col:hover{color:var(--panel-ink-2)}
@@ -507,6 +508,7 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 
 /* ============================================================ animation */
 @keyframes rise{from{opacity:0;transform:translateY(10px)}}
+@keyframes fadein{from{opacity:0}}
 @keyframes grow{from{width:0}}
 @keyframes draw{from{stroke-dasharray:0 100}to{stroke-dasharray:var(--dash)}}
 
@@ -527,7 +529,6 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
   --grid:#ffffff0a; --stage-glow:#38bdf81f;
   --glass:#ffffff0a; --glass-line:#ffffff14; --glass-strong:#ffffff1f;
   --untested:#475569; --missing:#1e293b; --stripe:#334155;
-  --glow:#fde047;
 }
 :root[data-theme=dark] .card, :root[data-theme=dark] .legend{background:var(--dark-2);border-color:var(--dark-3);box-shadow:none}
 :root[data-theme=dark] .card:hover{box-shadow:0 6px 20px #0006;border-color:var(--panel-ink-4)}
@@ -662,7 +663,7 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 :root[data-theme=dark] .ln{border-top-color:var(--lt-ink-3)}
 
 /* reset button and the per-mode keys in the enlarged view */
-#oreset{display:none;margin-left:auto}
+#oreset{display:none}
 #overlay.seedmode #oreset{display:inline-block}
 #overlay.seedmode #oclose{margin-left:0}
 .olegend.skey{display:none}
@@ -678,9 +679,9 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
    cannot wrap underneath it. */
 .clearpick{float:none;display:block;margin:0 0 10px auto}
 
-/* Picked units are marked on the canvas by cytoscape, which colours the border
+/* Picked units are marked on the canvas by cytoscape, which colors the border
    and prefixes the label with a circled digit. These chips repeat the same two
-   colours in the panel heading, so the pair is never told apart by hue alone. */
+   colors in the panel heading, so the pair is never told apart by hue alone. */
 .pk{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;
  border-radius:50%;margin-right:7px;font:700 12px var(--sans);color:#0f172a;
  vertical-align:1px}
@@ -718,7 +719,7 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 /* ---- filter menu ----
    Every surface filters through the same popup, so a page can offer many
    choices without a row of chips growing across the layout. */
-.filter{position:relative;flex:none}
+.filter{position:relative;flex:none;display:inline-flex;align-items:center}
 .filterbtn{display:flex;align-items:center;gap:8px;padding:9px 16px;cursor:pointer;
  border:1px solid var(--line);background:var(--card);color:var(--ink-2);
  border-radius:var(--r-pill);font:13px var(--sans);box-shadow:var(--shadow-s);
@@ -841,7 +842,7 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 .info-note{color:var(--panel-ink-4);font-size:11.5px;line-height:1.5;margin-top:8px}
 .info-tally{display:flex;gap:6px;flex-wrap:wrap}
 
-/* Each neighbour is a shortcut back into the conversion search. */
+/* Each neighbor is a shortcut back into the conversion search. */
 .nbs{display:flex;gap:7px;flex-wrap:wrap}
 .nb{display:flex;align-items:center;padding:5px 11px;cursor:pointer;
  border-radius:var(--r-pill);border:1px solid var(--glass-line);background:var(--glass);
@@ -926,6 +927,15 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 .legend .key:focus-visible,.seedlegend button:focus-visible,
 .olegend button:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
 .legend .key.total{cursor:default}
+.jumps{display:flex;gap:9px;flex-wrap:wrap}
+.jumps .gograph,.jumps .goconv{flex:1 1 160px;margin-top:0}
+.goconv{display:flex;align-items:center;justify-content:center;width:100%;
+ gap:2px;font:600 12px var(--mono);letter-spacing:.03em;cursor:pointer;
+ padding:11px 14px;border-radius:var(--r-m);background:var(--glass);
+ border:1px solid var(--panel-line);color:var(--panel-ink-2);
+ transition:border-color var(--fast) var(--ease),color var(--fast) var(--ease)}
+.goconv:hover{border-color:var(--accent-deep);color:var(--panel-ink)}
+.goconv .arrow{margin:0 8px}
 .gograph{display:flex;align-items:center;justify-content:center;width:100%;
  gap:2px;font:600 12px var(--mono);letter-spacing:.03em;cursor:pointer;
  padding:11px 14px;border-radius:var(--r-m);background:var(--accent-deep);
@@ -967,20 +977,36 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 .cv-in input:focus{border-color:var(--accent-deep)}
 #cvvalue{width:150px}
 #cvunit{width:130px;font-family:var(--mono)}
-.cv-out{display:flex;flex-direction:column;gap:5px;max-width:640px}
+.cv-body{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);
+ gap:24px;align-items:start}
+.cv-out{display:flex;flex-direction:column;gap:5px;min-width:0}
+.cv-side{min-width:0;position:sticky;top:16px;max-height:calc(100vh - 40px);
+ overflow-y:auto;scrollbar-width:thin;scrollbar-gutter:stable}
+@media(max-width:1000px){.cv-body{grid-template-columns:1fr}
+ .cv-side{position:static;max-height:none}}
 .cv-note{font:11px var(--mono);color:var(--ink-3);letter-spacing:.04em;
  text-transform:uppercase;margin-bottom:3px}
-.cv-row{display:flex;align-items:baseline;gap:10px;padding:9px 13px;
+.cv-item{position:relative}
+.cv-row{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;
+ padding:9px 46px 9px 13px;cursor:pointer;font:inherit;color:inherit;
  border-radius:var(--r-m);background:var(--card);border:1px solid var(--line);
  animation:rise var(--fast) var(--ease) both;
  animation-delay:calc(min(var(--i,0),14)*16ms)}
 .cv-row:hover{border-color:var(--accent-deep)}
+.cv-row.open{border-color:var(--accent-deep);
+ box-shadow:0 0 0 1px var(--accent-deep)}
+.cv-row:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
+.cv-more{margin-left:12px;font:10px var(--mono);color:var(--ink-3);opacity:0;
+ white-space:nowrap;transition:opacity var(--fast) var(--ease)}
+.cv-row:hover .cv-more,.cv-row:focus-visible .cv-more{opacity:1}
+.cv-row.open .cv-more{opacity:0}
 .cv-val{font:15px var(--mono);color:var(--ink);min-width:170px;
  word-break:break-all}
 .cv-row .u{color:var(--ink-2)}
 .cv-hops{margin-left:auto;font:10.5px var(--mono);color:var(--ink-3);cursor:help}
-.cv-copy{background:none;border:none;cursor:pointer;color:var(--ink-3);
- font-size:13px;padding:2px 6px;border-radius:var(--r-s)}
+.cv-copy{position:absolute;top:7px;right:9px;background:none;border:none;
+ cursor:pointer;color:var(--ink-3);font-size:13px;padding:3px 7px;
+ border-radius:var(--r-s)}
 .cv-copy:hover{color:var(--accent-deep);background:var(--page-deep)}
 :root[data-theme=dark] .cv-in input{background:var(--dark-2);border-color:var(--dark-3);
  color:var(--lt-ink)}
@@ -1004,10 +1030,14 @@ tr.suggest{cursor:pointer}
 
 /* keyboard help */
 #keyhelp{position:fixed;inset:0;z-index:85;background:var(--veil);display:flex;
- align-items:center;justify-content:center;padding:20px}
+ align-items:center;justify-content:center;padding:20px;
+ opacity:0;transition:opacity var(--med) var(--ease)}
+#keyhelp.in{opacity:1}
 .kh-card{background:var(--panel-deep);border:1px solid var(--panel-line);
  border-radius:var(--r-l);padding:22px 26px;color:var(--panel-ink);
- box-shadow:var(--shadow-l);min-width:280px}
+ box-shadow:var(--shadow-l);min-width:280px;
+ transform:translateY(14px) scale(.98);transition:transform var(--med) var(--ease)}
+#keyhelp.in .kh-card{transform:none}
 .kh-card h3{margin:0 0 14px}
 .kh-card dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0 0 18px}
 .kh-card dt{margin:0}
@@ -1179,6 +1209,133 @@ kbd{font:11.5px var(--mono);padding:3px 8px;border-radius:var(--r-s);
 /* the route the idle walk is currently showing */
 .prow.lit{border-color:var(--glow);box-shadow:0 0 0 1px var(--glow) inset,
  0 0 14px -4px var(--glow)}
-.prow.lit .hops{background:var(--glow);color:#fff8e1}
-:root[data-theme=dark] .prow.lit .hops{color:#3a2a05}
+.prow.lit .hops{background:var(--glow);color:#1f2937}
 @media(prefers-reduced-motion:reduce){.prow.lit{transition:none}}
+
+/* ================================================ the worked-out conversion */
+.cv-side .cvwork{border:1px solid var(--line);border-radius:var(--r-l);
+ background:var(--card);padding:20px 22px 22px;
+ /* fade only: a translate here would overflow the scroll parent while it ran */
+ animation:fadein var(--fast) var(--ease) both}
+.cv-hint{padding:22px;border-radius:var(--r-l);border:1px dashed var(--line);
+ color:var(--ink-3);font-size:13.5px;line-height:1.6}
+.cv-hint b{display:block;color:var(--ink);margin-bottom:4px;font-size:14.5px}
+:root[data-theme=dark] .cv-side .cvwork{background:var(--dark-2);
+ border-color:var(--dark-3)}
+:root[data-theme=dark] .cv-hint{border-color:var(--dark-3)}
+.cvwork-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+ margin-bottom:4px}
+.cvwork-q{font-size:15px;color:var(--ink);flex:1;min-width:0}
+.cvgraph{display:inline-flex;align-items:center;gap:2px;flex:none;cursor:pointer;
+ font:600 11px var(--mono);padding:7px 13px;border-radius:var(--r-pill);
+ background:var(--accent-deep);border:1px solid var(--accent-deep);color:#062033;
+ transition:filter var(--fast) var(--ease)}
+.cvgraph:hover{filter:brightness(1.08)}
+.cvgraph .arrow{margin:0 6px;background-color:#062033}
+.cvwork-note{font-size:12px;color:var(--ink-3);line-height:1.55;margin-bottom:14px}
+.cvwork-note code{font:11px var(--mono);background:var(--page-deep);padding:1px 5px;
+ border-radius:var(--r-s)}
+
+.cvsteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.cvstep{padding:11px 14px;border-radius:var(--r-m);background:var(--page-deep);
+ border:1px solid var(--line)}
+.cvstep-head{display:flex;align-items:center;gap:8px;font-size:13.5px;
+ color:var(--ink);margin-bottom:5px}
+.cvstep-n{display:flex;align-items:center;justify-content:center;width:19px;
+ height:19px;flex:none;border-radius:50%;font:600 10.5px var(--mono);
+ background:var(--ink-3);color:var(--card)}
+.cvstep-src{font-size:11.5px;color:var(--ink-3);line-height:1.6;margin-bottom:7px;
+ overflow-wrap:anywhere}
+.cvstep-eq{font:14px var(--math);color:var(--ink);line-height:1.8;
+ overflow-wrap:anywhere}
+.cvstep-eq b{font-weight:600}
+.cvstep-eq .eq{margin:0 10px;color:var(--ink-3)}
+.cvstep-eq .op,.cvstep-src .op{margin:0 5px;color:var(--ink-3)}
+.cvwork-sum{margin-top:15px;padding-top:13px;border-top:1px solid var(--line)}
+.cvwork-lbl{font:10px var(--mono);letter-spacing:.06em;text-transform:uppercase;
+ color:var(--ink-3);margin-bottom:7px}
+.cvstep-eq.answer{margin-top:5px;font-size:16px}
+
+:root[data-theme=dark] .cv-work{background:var(--dark-2)}
+:root[data-theme=dark] .cvstep{background:var(--dark);border-color:var(--dark-3)}
+:root[data-theme=dark] .cvstep-n{background:var(--lt-ink-3);color:var(--dark)}
+:root[data-theme=dark] .cvwork-note code{background:var(--dark-3)}
+
+/* the option the field currently holds */
+.cv-opt.here{background:var(--page-deep);font-weight:600}
+:root[data-theme=dark] .cv-opt.here{background:var(--dark-3)}
+
+/* the authored formula and the constants behind a hop */
+.cvstep-raw{font-size:11.5px;color:var(--ink-3);margin-bottom:5px;
+ overflow-wrap:anywhere}
+.cvstep-raw code{font:11px var(--mono);background:var(--card);padding:2px 6px;
+ border-radius:var(--r-s)}
+.cvstep-where{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;
+ display:flex;flex-wrap:wrap;gap:2px 4px;align-items:baseline}
+.cvstep-where .kw{font:10px var(--mono);letter-spacing:.06em;text-transform:uppercase;
+ color:var(--ink-3);margin-right:5px}
+.cv-const{font:11.5px var(--math);color:var(--ink-2);white-space:nowrap}
+.cv-const i{font-style:italic;color:var(--ink)}
+.cvstep-where .sep{margin-right:4px}
+:root[data-theme=dark] .cvstep-raw code{background:var(--dark-3)}
+
+/* what the two units are */
+.cv-units{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.cv-unit{padding:11px 13px;border-radius:var(--r-m);background:var(--page-deep);
+ border:1px solid var(--line);margin-top:8px}
+.cv-unit-h{font-size:15px;color:var(--ink)}
+.cv-unit-n{font-size:12.5px;color:var(--ink-2);margin:1px 0 7px}
+.cv-unit-d{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px;
+ margin:0;font-size:11.5px}
+.cv-unit-d dt{color:var(--ink-3);font:10px var(--mono);letter-spacing:.04em;
+ text-transform:uppercase;padding-top:2px}
+.cv-unit-d dd{margin:0;color:var(--ink-2);overflow-wrap:anywhere}
+:root[data-theme=dark] .cv-unit{background:var(--dark);border-color:var(--dark-3)}
+
+/* ===================================================== consistency pass */
+/* One focus ring for everything that can take focus. Nineteen interactive
+   things had none, so tabbing through the page kept losing the caret; the
+   handful with their own ring are more specific and still win. */
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,
+summary:focus-visible,[tabindex]:focus-visible{
+ outline:2px solid var(--accent-deep);outline-offset:2px}
+
+/* And one press response, so every button acknowledges the click the same way. */
+button:active:not(:disabled){transform:scale(.97)}
+.mode:active,.tab:active,.cv-opt:active,.fopt:active,#toast:active{transform:none}
+@media(prefers-reduced-motion:reduce){button:active:not(:disabled){transform:none}}
+
+/* small radii were 2, 3 and 5px by hand; the scale starts at --r-s */
+.results .res .dot{border-radius:var(--r-s)}
+#ostage table.matrix td{border-radius:var(--r-s)}
+
+/* the route-cycling toggle: a dot that says whether it is running */
+#ocycle{display:none;align-items:center;gap:8px;margin-left:auto}
+#overlay.seedmode #ocycle{display:inline-flex}
+#ocycle::before{content:"";width:7px;height:7px;border-radius:50%;flex:none;
+ background:var(--glow);box-shadow:0 0 7px -1px var(--glow);
+ transition:background var(--fast) var(--ease),box-shadow var(--fast) var(--ease)}
+#ocycle.off{color:var(--panel-ink-4)}
+#ocycle.off::before{background:var(--panel-line);box-shadow:none}
+
+/* ============================================== the theme sweep */
+/* The default cross-fade would show both themes at once through each other.
+   The new page is uncovered by the travelling diagonal instead, so the old one
+   just sits still underneath it. */
+::view-transition-old(root),
+::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-old(root){z-index:1}
+::view-transition-new(root){z-index:2}
+
+/* clear every filter without opening the menu */
+.fwipe{display:inline-flex;align-items:center;justify-content:center;
+ width:28px;height:28px;margin-left:5px;flex:none;cursor:pointer;font-size:17px;
+ line-height:1;border-radius:var(--r-pill);background:none;
+ border:1px solid transparent;color:var(--ink-3);
+ transition:color var(--fast) var(--ease),border-color var(--fast) var(--ease),
+ opacity var(--fast) var(--ease)}
+.fwipe:hover:not(:disabled){color:var(--bad);border-color:var(--line)}
+.fwipe:disabled{opacity:.3;cursor:default}
+:root[data-theme=dark] .fwipe{color:var(--lt-ink-3)}
+:root[data-theme=dark] .fwipe:hover:not(:disabled){color:#fca5a5;
+ border-color:var(--dark-3)}

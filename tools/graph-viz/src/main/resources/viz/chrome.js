@@ -225,11 +225,59 @@
       label.textContent = root.dataset.theme === 'dark' ? 'Light' : 'Dark';
     }
 
-    btn.addEventListener('click', function () {
+    function apply() {
       root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
       try { localStorage.setItem('viz-theme', root.dataset.theme); } catch (e) { }
       paint();
       restyleGraphs();
+    }
+
+    /*
+     * The new theme is wiped across the page in a circle growing out of the
+     * button you just pressed, so the change reads as one movement rather than
+     * as the whole page blinking.
+     *
+     * View transitions do the hard part: the browser holds a picture of the old
+     * page while the new one is painted underneath, and all this has to do is
+     * animate the shape that reveals it. Where that is unavailable, or motion
+     * is unwanted, the theme simply changes - the same work, without the sweep.
+     */
+    /*
+     * The new theme arrives behind a straight diagonal edge that crosses the
+     * page, and it crosses the other way depending on which way you are going -
+     * light comes down from the top left, dark comes up from the bottom right.
+     * The direction is the tell: the same motion twice would say nothing about
+     * which of the two you just landed on.
+     *
+     * View transitions do the hard part - the browser holds a picture of the
+     * old page while the new one paints underneath - so all this animates is
+     * the shape that uncovers it. A triangle grown from one corner has a
+     * straight hypotenuse, which is the edge you see travelling. Where view
+     * transitions are unavailable, or motion is unwanted, the theme simply
+     * changes: the same work, without the sweep.
+     */
+    btn.addEventListener('click', function () {
+      var still = window.matchMedia
+               && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!document.startViewTransition || still) {
+        apply();
+        return;
+      }
+
+      var goingDark = root.dataset.theme !== 'dark';
+      // Long enough that the diagonal has left the far corner behind.
+      var reach = (innerWidth + innerHeight) + 'px';
+      var corner = goingDark ? '100% 100%' : '0px 0px';
+      var edge = goingDark
+        ? ['100% 100%', 'calc(100% - ' + reach + ') 100%', '100% calc(100% - ' + reach + ')']
+        : ['0px 0px', reach + ' 0px', '0px ' + reach];
+
+      document.startViewTransition(apply).ready.then(function () {
+        root.animate({clipPath: ['polygon(' + [corner, corner, corner].join(',') + ')',
+                                 'polygon(' + edge.join(',') + ')']},
+                     {duration: 620, easing: 'cubic-bezier(.22,.7,.28,1)',
+                      pseudoElement: '::view-transition-new(root)'});
+      });
     });
     paint();
   })();

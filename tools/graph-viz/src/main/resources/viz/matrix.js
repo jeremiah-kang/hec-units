@@ -96,7 +96,9 @@
         if (entry.isIntersecting) {
           buildMatrix(entry.target);
           watcher.unobserve(entry.target);
-          if (typeof fitThumbs === 'function') { fitThumbs(); }
+          // After a frame: the table has just been written, and the card may
+          // still be mid entrance animation.
+          if (typeof refitThumbs === 'function') { refitThumbs(); }
         }
       });
     }, {rootMargin: '250px'});

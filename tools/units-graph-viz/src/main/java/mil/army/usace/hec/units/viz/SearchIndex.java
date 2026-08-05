@@ -28,13 +28,13 @@ final class SearchIndex {
 
     static String script(Graph generated, Graph direct, Map<String, Unit> units) {
         var kinds = new HashMap<String, String>();
-        var neighbours = new TreeMap<String, TreeSet<String>>();
+        var neighbors = new TreeMap<String, TreeSet<String>>();
         for (Edge edge : direct.edges()) {
             String kind = edge.label() == null ? "" : edge.label().split("\\|")[0];
             kinds.put(pair(edge.from(), edge.to()), kind);
             kinds.putIfAbsent(pair(edge.to(), edge.from()), kind);
-            neighbours.computeIfAbsent(edge.from(), key -> new TreeSet<>()).add(edge.to());
-            neighbours.computeIfAbsent(edge.to(), key -> new TreeSet<>()).add(edge.from());
+            neighbors.computeIfAbsent(edge.from(), key -> new TreeSet<>()).add(edge.to());
+            neighbors.computeIfAbsent(edge.to(), key -> new TreeSet<>()).add(edge.from());
         }
 
         // Passed, failed and untested per unit, counting every conversion the
@@ -55,7 +55,7 @@ final class SearchIndex {
         rows.sort(Comparator.naturalOrder());
 
         return "var INDEX=[" + String.join(",", rows) + "];\n"
-             + "var UNITS=" + unitsJson(units, neighbours, tallies) + ";\n";
+             + "var UNITS=" + unitsJson(units, neighbors, tallies) + ";\n";
     }
 
     private static String row(Edge edge, Unit from, Unit to, String kind) {
@@ -74,22 +74,22 @@ final class SearchIndex {
     }
 
     private static String unitsJson(Map<String, Unit> units,
-                                    Map<String, TreeSet<String>> neighbours,
+                                    Map<String, TreeSet<String>> neighbors,
                                     Map<String, int[]> tallies) {
         var entries = new ArrayList<String>();
         new TreeMap<>(units).forEach((id, unit) -> entries.add(Json.str(id) + ":"
-            + unitJson(unit, neighbours.getOrDefault(id, new TreeSet<>()),
+            + unitJson(unit, neighbors.getOrDefault(id, new TreeSet<>()),
                        tallies.getOrDefault(id, new int[3]))));
         return "{" + String.join(",", entries) + "}";
     }
 
-    private static String unitJson(Unit unit, Collection<String> neighbours, int[] tally) {
+    private static String unitJson(Unit unit, Collection<String> neighbors, int[] tally) {
         return "{\"n\":" + Json.str(unit.getName())
              + ",\"d\":" + Json.str(unit.getAbstractParameter())
              + ",\"y\":" + Json.str(unit.getSystem())
              + ",\"x\":" + Json.str(unit.getDescription())
              + ",\"a\":" + array(unit.getAliases())
-             + ",\"nb\":" + array(neighbours)
+             + ",\"nb\":" + array(neighbors)
              + ",\"c\":[" + tally[0] + "," + tally[1] + "," + tally[2] + "]}";
     }
 

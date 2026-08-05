@@ -85,6 +85,7 @@
     var button = wrap.querySelector('.filterbtn');
     var menu = wrap.querySelector('.filtermenu');
     var badge = wrap.querySelector('.fnum');
+    var wipe = wrap.querySelector('.fwipe');
 
     function close() {
       menu.hidden = true;
@@ -108,7 +109,8 @@
     });
 
     menu.addEventListener('change', onChange);
-    menu.querySelector('.fclear').addEventListener('click', function () {
+
+    function clearAll() {
       menu.querySelectorAll('input[type=checkbox]').forEach(function (box) {
         box.checked = false;
       });
@@ -116,6 +118,15 @@
         select.selectedIndex = 0;
       });
       onChange();
+    }
+
+    menu.querySelector('.fclear').addEventListener('click', clearAll);
+
+    /* The same clear, without having to open the menu to reach it. */
+    wipe.addEventListener('click', function (event) {
+      event.stopPropagation();
+      clearAll();
+      button.focus();
     });
 
     return {
@@ -124,6 +135,7 @@
       count: function (active) {
         badge.textContent = active > 0 ? active : '';
         wrap.classList.toggle('on', active > 0);
+        wipe.disabled = active === 0;
       }
     };
   }
@@ -532,10 +544,13 @@
            + (unit.y ? ' (' + systemName(unit.y) + ')' : '');
     }
 
-    var graphable = graphCardFor(row.d)
-      ? '<div class="info-sec"><button type="button" class="gograph">'
-        + 'Graph' + ARROW + escText(row.d) + '</button></div>'
-      : '';
+    var jumps = '<div class="info-sec jumps">'
+      + (graphCardFor(row.d)
+         ? '<button type="button" class="gograph">Graph' + ARROW
+           + escText(row.d) + '</button>'
+         : '')
+      + '<button type="button" class="goconv">Converter' + ARROW
+      + sup(escText(row.f)) + '</button></div>';
 
     winfo.innerHTML = (renderedDetail(row.f, row.t)
         || '<div class="empty">No rendered formula for this pair.</div>')
@@ -548,15 +563,18 @@
           ['route', row.h ? row.h + (row.h === 1 ? ' hop' : ' hops') : 'not reachable'],
           ['kind', row.k ? 'written by hand (' + row.k + ':)' : 'derived by chaining']
         ])
-      + '</div>' + graphable;
+      + '</div>' + jumps;
     winfo.scrollTop = 0;
 
-    var button = winfo.querySelector('.gograph');
-    if (button) {
-      button.addEventListener('click', function () {
+    var toGraph = winfo.querySelector('.gograph');
+    if (toGraph) {
+      toGraph.addEventListener('click', function () {
         openGraph(row.d, row.f, row.t);
       });
     }
+    winfo.querySelector('.goconv').addEventListener('click', function () {
+      openConverter(row.f, row.t);
+    });
   }
 
   function showUnit(id) {
@@ -565,11 +583,11 @@
       return;
     }
     var aliases = unit.a || [];
-    var neighbours = unit.nb || [];
+    var neighbors = unit.nb || [];
     var total = unit.c[0] + unit.c[1] + unit.c[2];
 
-    var conversions = neighbours.length
-      ? '<div class="nbs">' + neighbours.map(function (other) {
+    var conversions = neighbors.length
+      ? '<div class="nbs">' + neighbors.map(function (other) {
           return '<button type="button" class="nb" data-to="' + escText(other) + '">'
                + sup(escText(id)) + ARROW + sup(escText(other)) + '</button>';
         }).join('') + '</div>'
@@ -588,7 +606,7 @@
           ['dimension', unit.d],
           ['system', systemName(unit.y)],
           ['also known as', aliases.length ? aliases.join(', ') : 'nothing else'],
-          ['direct conversions', neighbours.length],
+          ['direct conversions', neighbors.length],
           ['conversions in all', total]
         ])
       + '</div>'
@@ -601,6 +619,14 @@
       + '<div class="info-sec"><div class="lbl">direct conversions</div>'
       + conversions + '</div></div>';
     winfo.scrollTop = 0;
+
+    var toConverter = document.createElement('button');
+    toConverter.type = 'button';
+    toConverter.className = 'goconv';
+    toConverter.innerHTML = 'Converter' + ARROW + sup(escText(id));
+    toConverter.addEventListener('click', function () { openConverter(id, null); });
+    winfo.insertAdjacentHTML('beforeend', '<div class="info-sec jumps"></div>');
+    winfo.querySelector('.jumps').appendChild(toConverter);
 
     winfo.querySelectorAll('.nb').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -721,7 +747,7 @@
 
   /* --------------------------------------------------- legend keys deep-link */
 
-  /* Every key already says what a colour means; clicking one asks the question
+  /* Every key already says what a color means; clicking one asks the question
      it describes. The keys inside the overlay close it on the way out. */
   document.querySelectorAll('.legend [data-status], .legend [data-system],'
                           + ' .legend [data-kind]').forEach(function (key) {

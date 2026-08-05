@@ -42,6 +42,8 @@ public final class SearchView {
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
         Filters<span class="fnum"></span>
         </button>
+        <button type="button" class="fwipe" disabled
+        title="Clear every filter" aria-label="Clear every filter">&times;</button>
         <div class="filtermenu" hidden>
         {{body}}
         <button type="button" class="fclear">Clear filters</button>

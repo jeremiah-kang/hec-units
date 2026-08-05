@@ -369,7 +369,18 @@
   /* A matrix preview is scaled down to fit its window, so a thirty unit
      dimension and a three unit one produce the same size card and neither
      needs a scrollbar. Layout is untouched by a transform, so the table stays
-     centred and only its painted size changes. */
+     centered and only its painted size changes. */
+  /*
+   * Scale each matrix down until it fits its card.
+   *
+   * Everything here is a guard against measuring at the wrong moment. A table
+   * inside a hidden tab measures zero, which used to divide to Infinity and
+   * settle on scale(1) - the table then overflowed and looked cut off. A table
+   * measured before its font has loaded is narrower than it will be, so the
+   * scale comes out too generous and it overflows once the real font arrives.
+   * Both leave a thumbnail clipped, and both are intermittent, which is why it
+   * worked sometimes.
+   */
   function fitThumbs() {
     document.querySelectorAll('.thumb.scroll').forEach(function (box) {
       var table = box.querySelector('table');
@@ -377,12 +388,36 @@
         return;
       }
       table.style.transform = '';
-      var room = Math.min(box.clientWidth / table.offsetWidth,
-                          box.clientHeight / table.offsetHeight, 1);
+
+      var width = table.offsetWidth;
+      var height = table.offsetHeight;
+      if (!width || !height || !box.clientWidth || !box.clientHeight) {
+        table.dataset.unfitted = '1';        // measured while hidden; try again later
+        return;
+      }
+      delete table.dataset.unfitted;
+
+      var room = Math.min(box.clientWidth / width, box.clientHeight / height, 1);
       table.style.transform = 'scale(' + room.toFixed(3) + ')';
     });
+  }
+
+  /* Anything that changes how wide the text is, or makes a hidden card visible,
+     invalidates a measurement taken earlier. */
+  function refitThumbs() {
+    requestAnimationFrame(fitThumbs);
   }
 
   watchMatrices();
   fitThumbs();
   window.addEventListener('resize', fitThumbs);
+
+  // The first measurement can land before the monospace font does, and every
+  // column would then be measured too narrow.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(refitThumbs);
+  }
+  // Switching tabs is the moment a card that measured zero becomes measurable.
+  document.querySelectorAll('.tab').forEach(function (tab) {
+    tab.addEventListener('click', refitThumbs);
+  });

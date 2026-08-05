@@ -17,7 +17,7 @@ class MatrixViewTest {
     private static Graph sample() {
         return new Graph(
             List.of(new Node("ft", "Feet", "Length"),
-                    new Node("m", "Metres", "Length"),
+                    new Node("m", "Meters", "Length"),
                     new Node("in", "Inches", "Length")),
             List.of(new Edge("ft", "m", EdgeStatus.PASSED),
                     new Edge("m", "ft", EdgeStatus.FAILED),
@@ -60,7 +60,7 @@ class MatrixViewTest {
         assertTrue(html.contains("data-failed=\"1\""));
         assertTrue(html.contains("data-untested=\"1\""));
         // members are sorted by id, so ft, in, m - not declaration order
-        assertTrue(html.contains("data-find=\"length ft feet in inches m metres\""));
+        assertTrue(html.contains("data-find=\"length ft feet in inches m meters\""));
     }
 
     @Test

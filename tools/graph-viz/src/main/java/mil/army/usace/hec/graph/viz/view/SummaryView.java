@@ -193,7 +193,7 @@ public final class SummaryView {
 
         var arcs = new StringBuilder();
         double offset = 25;                     // rotates the start to twelve o'clock
-        double travelled = 0;                   // how far round the pen already is
+        double traveled = 0;                   // how far round the pen already is
 
         // One pen going round once, changing color at each boundary. Each arc
         // waits for the pen to reach it and then takes exactly as long as its
@@ -210,11 +210,11 @@ public final class SummaryView {
                 .put("share", round(share))
                 .put("rest", round(100 - share))
                 .put("offset", round(offset))
-                .put("delay", seconds(SWEEP * travelled / 100))
+                .put("delay", seconds(SWEEP * traveled / 100))
                 .put("dur", seconds(SWEEP * share / 100))
                 .render());
             offset -= share;
-            travelled += share;
+            traveled += share;
         }
 
         return Html.fill("""

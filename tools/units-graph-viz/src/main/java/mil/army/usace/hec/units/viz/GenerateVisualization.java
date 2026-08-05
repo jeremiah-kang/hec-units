@@ -42,7 +42,7 @@ public final class GenerateVisualization {
             new Stats(graph),
             (covered ? "" : missingReportNotice()) + MatrixView.render(graph),
             NodeLinkView.render(seedGraph),
-            SeedPaths.script(loader) + CytoscapeData.script(seedGraph)
+            SeedPaths.script(loader) + SeedPaths.formulas() + CytoscapeData.script(seedGraph)
                 + SearchIndex.script(graph, seedGraph, loader.getUnits()));
 
         Files.createDirectories(outputDir);
