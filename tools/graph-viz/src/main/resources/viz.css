@@ -32,7 +32,7 @@
   /* the idle route walk. Brighter than --warn so it reads as a lamp coming
      on rather than a caution colour; deeper on a light stage, where a pale
      yellow would disappear into the background. */
-  --glow:#ca9a04;
+  --glow:#92400e;
 
   /* shape + depth */
   --r-s:4px; --r-m:8px; --r-l:12px; --r-pill:99px;
@@ -618,8 +618,12 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 /* ============================================================ route explorer */
 #odetail h4{margin:0 0 4px;font-size:17px;font-family:var(--math);color:var(--panel-ink)}
 .pth-sub{color:var(--panel-ink-4);font:11.5px var(--mono);margin-bottom:12px}
-.pth-warn{background:#78350f66;border:1px solid #f59e0b66;border-radius:var(--r-m);
- padding:9px 12px;margin:10px 0;color:#fcd34d;font-size:12.5px;line-height:1.5}
+.pth-warn{background:#fef3c7;border:1px solid #f59e0b;border-radius:var(--r-m);
+ padding:9px 12px;margin:10px 0;color:#78350f;font-size:12.5px;line-height:1.5}
+.pth-warn b{color:#7c2d12}
+:root[data-theme=dark] .pth-warn{background:#78350f66;border-color:#f59e0b66;
+ color:#fcd34d}
+:root[data-theme=dark] .pth-warn b{color:#fde68a}
 .pth-ok{color:#86efac;font-size:12.5px;margin:10px 0}
 
 .prow{padding:8px 10px;border-radius:var(--r-m);margin-bottom:6px;background:var(--glass);
@@ -915,7 +919,7 @@ td.self{background:repeating-linear-gradient(45deg,var(--card),var(--card) 3px,
 /* legend keys and the jump-to-graph button are controls, not labels */
 .legend .key,.seedlegend button,.olegend button{font:inherit;cursor:pointer;
  background:none;border:none;padding:2px 6px;margin:-2px -2px;color:inherit;
- border-radius:var(--r-s);display:inline-flex;align-items:center;
+ border-radius:var(--r-s);display:inline-flex;align-items:center;gap:8px;
  transition:background var(--fast) var(--ease),color var(--fast) var(--ease)}
 .legend .key:not(.total):hover,.seedlegend button:hover{background:var(--page-deep);color:var(--ink)}
 .olegend button:hover{background:var(--glass-strong);color:var(--panel-ink)}
@@ -1175,5 +1179,6 @@ kbd{font:11.5px var(--mono);padding:3px 8px;border-radius:var(--r-s);
 /* the route the idle walk is currently showing */
 .prow.lit{border-color:var(--glow);box-shadow:0 0 0 1px var(--glow) inset,
  0 0 14px -4px var(--glow)}
-.prow.lit .hops{background:var(--glow);color:#3a2a05}
+.prow.lit .hops{background:var(--glow);color:#fff8e1}
+:root[data-theme=dark] .prow.lit .hops{color:#3a2a05}
 @media(prefers-reduced-motion:reduce){.prow.lit{transition:none}}

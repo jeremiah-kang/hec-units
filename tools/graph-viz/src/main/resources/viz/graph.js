@@ -109,13 +109,6 @@
         'transition-duration': '0.4s',
         'transition-timing-function': 'ease-out'}},
 
-      // The moment it comes on: a small surge that settles back, which is what
-      // a light switching on looks like. Kept close to the settled values - the
-      // point is to catch the eye once, not to jump at it.
-      {selector: 'edge.cycle.surge', style: {
-        'width': 5.4, 'overlay-opacity': 0.25, 'overlay-padding': 10}},
-      {selector: 'node.cycle.surge', style: {
-        'border-width': 4.2, 'overlay-opacity': 0.25, 'overlay-padding': 9}},
       {selector: 'edge.sel', style: {
         'line-color': token('--edge-pick'), 'width': 4.5, 'opacity': 1}},
       // Nothing but full opacity. The chevrons riding above are the highlight,
@@ -264,7 +257,6 @@
     var cycle = null;                 // the idle walk through the routes
     var cycleAt = 0;
     var lead = null;                  // the pause before the first route lights
-    var surge = null;                 // the switching-on surge
     var flowHint = false;
     var flowInk = token('--accent-deep');
     var phase = 0;
@@ -896,7 +888,6 @@
 
     var CYCLE_MS = 1500;              // how long each route stays lit
     var CYCLE_LEAD = 500;             // a beat before the first one comes on
-    var CYCLE_SURGE = 180;            // how long the switching-on surge lasts
 
     function litPath(p) {
       var onEdge = {};
@@ -910,16 +901,7 @@
       cy.batch(function () {
         E.forEach(function (edge, j) { edge.ele.toggleClass('cycle', !!onEdge[j]); });
         N.forEach(function (node, j) { node.ele.toggleClass('cycle', !!onNode[j]); });
-        cy.elements('.cycle').addClass('surge');
       });
-
-      // Let the surge paint, then drop it: the transition carries it back down
-      // and the path settles at its lit size.
-      if (surge) { clearTimeout(surge); }
-      surge = setTimeout(function () {
-        surge = null;
-        cy.batch(function () { cy.elements('.surge').removeClass('surge'); });
-      }, CYCLE_SURGE);
 
       odetail.querySelectorAll('.prow').forEach(function (row) {
         row.classList.toggle('lit', +row.dataset.i === cycleAt);
@@ -949,9 +931,8 @@
 
     function stopCycle() {
       if (lead) { clearTimeout(lead); lead = null; }
-      if (surge) { clearTimeout(surge); surge = null; }
       if (cycle) { clearInterval(cycle); cycle = null; }
-      cy.elements().removeClass('cycle surge');
+      cy.elements().removeClass('cycle');
       odetail.querySelectorAll('.prow.lit').forEach(function (row) {
         row.classList.remove('lit');
       });
